@@ -14,20 +14,20 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD}
-      DART_API_KEY: ${DART_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      spring.ai.openai.api-key: ${OPENAI_API_KEY}
-      spring.datasource.url: jdbc:mysql://db:3306/einvestlab?useSSL=false&allowPublicKeyRetrieval=true
-    depends_on:
-      db:
-        condition: service_healthy
+#  app:
+#    build: .
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      DB_USERNAME: root
+#      DB_PASSWORD: ${DB_PASSWORD}
+#      DART_API_KEY: ${DART_API_KEY}
+#      OPENAI_API_KEY: ${OPENAI_API_KEY}
+#      spring.ai.openai.api-key: ${OPENAI_API_KEY}
+#      spring.datasource.url: jdbc:mysql://db:3306/einvestlab?useSSL=false&allowPublicKeyRetrieval=true
+#    depends_on:
+#      db:
+#        condition: service_healthy
 
 volumes:
   mysql-data:

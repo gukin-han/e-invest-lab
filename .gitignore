@@ -44,3 +44,9 @@ src/main/resources/static/
 ### Environment ###
 .env
 application-local.properties
+
+### JVM heap dumps ###
+*.hprof
+
+### Claude session data ###
+.claude/

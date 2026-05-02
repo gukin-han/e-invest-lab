@@ -23,7 +23,7 @@ public class StockPriceScheduler {
     private final StockPriceService stockPriceService;
     private final MarketReactionRepository marketReactionRepository;
 
-    @Scheduled(fixedDelayString = "${kis.polling.interval:300000}")
+//    @Scheduled(fixedDelayString = "${kis.polling.interval:300000}")
     public void collectPrices() {
         if (!isMarketOpen()) {
             return;
