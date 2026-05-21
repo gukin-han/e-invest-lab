@@ -87,6 +87,21 @@ processed=115000 heap=19MB / 32MB
 
 만약 통째 적재였다면 30MB 데이터 + 객체 오버헤드(5~10배) = 150~300MB 필요 → OOM.
 
+### V3 검증 — DB 쓰기 포함 (2026-05-21)
+
+V1/V2는 "파싱 → 버림"까지였음. V3에서 `JdbcTemplate.batchUpdate` + `ON DUPLICATE KEY UPDATE`(MySQL 8, Testcontainers reuse)로 DB upsert를 끼우고 3개 축으로 sweep:
+
+| 차원 | 결과 |
+|---|---|
+| heap 한도 32m~256m (8x) | heap 최저점이 한도와 무관하게 26~28MB로 묶임 — 한도는 GC slack만 키움 |
+| 입력 10배 반복 (118k → 1.18M rows) | 패턴 동일, 누적 처리량과 footprint 분리 재확인 |
+| batch 100~10000 | **batch만이 정거장 크기를 결정** (28MB → 45MB). throughput sweet spot은 batch=5000 (1000 대비 35% 빠름) |
+| **단일 입력 1x/10x/100x** (30MB/300MB/**3GB** XML) | 합성 zip으로 한 번에 100배 큰 입력 → peak heap이 모두 **57MB로 동일**. 시간은 입력에 선형 |
+
+정리: `footprint(N, H, B) ≈ c · B`. N(입력)과 H(한도)는 영향 없고 batch B만 정거장 크기를 결정. **3GB 입력 → 64MB 힙 처리** 확인.
+
+상세 결과·그래프 7장: [streaming-memory-experiment/README.md](./streaming-memory-experiment/README.md)
+
 ### 적용 — 운영 코드 동기화 흐름
 
 ```
