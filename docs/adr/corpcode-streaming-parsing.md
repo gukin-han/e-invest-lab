@@ -97,10 +97,11 @@ V1/V2는 "파싱 → 버림"까지였음. V3에서 `JdbcTemplate.batchUpdate` + 
 | 입력 10배 반복 (118k → 1.18M rows) | 패턴 동일, 누적 처리량과 footprint 분리 재확인 |
 | batch 100~10000 | **batch만이 정거장 크기를 결정** (28MB → 45MB). throughput sweet spot은 batch=5000 (1000 대비 35% 빠름) |
 | **단일 입력 1x/10x/100x** (30MB/300MB/**3GB** XML) | 합성 zip으로 한 번에 100배 큰 입력 → peak heap이 모두 **57MB로 동일**. 시간은 입력에 선형 |
+| **DB on/off 단변수 비교** | `batchUpdate()` 호출만 토글 → floor +2.2MB (JDBC 인터널 상수), peak 동일. 시간의 9/10이 DB 쓰기 |
 
-정리: `footprint(N, H, B) ≈ c · B`. N(입력)과 H(한도)는 영향 없고 batch B만 정거장 크기를 결정. **3GB 입력 → 64MB 힙 처리** 확인.
+정리: **메모리 footprint ≈ (1 row당 메모리 단가) × batch 사이즈 + JDBC 인터널(~2MB)**. 입력 크기·heap 한도와는 무관하고 batch 사이즈만이 정거장 크기를 비례적으로 결정. **3GB 입력 → 64MB 힙 처리** 확인.
 
-상세 결과·그래프 7장: [streaming-memory-experiment/README.md](./streaming-memory-experiment/README.md)
+상세 결과·그래프: [streaming-memory-experiment/README.md](./streaming-memory-experiment/README.md)
 
 ### 적용 — 운영 코드 동기화 흐름
 

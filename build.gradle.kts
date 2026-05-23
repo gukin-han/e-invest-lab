@@ -96,6 +96,41 @@ listOf(100, 500, 1000, 5000, 10000).forEach { batchSize ->
     }
 }
 
+// F: DB on vs off — does JDBC batchUpdate add floor memory?
+(1..5).forEach { trial ->
+    tasks.register<Test>("memTestF-dbon-t$trial") {
+        configureExperiment(heap = "64m", label = "64m-dbon-t$trial")
+    }
+    tasks.register<Test>("memTestF-dboff-t$trial") {
+        configureExperiment(
+            heap = "64m",
+            label = "64m-dboff-t$trial",
+            extraEnv = mapOf("EXPERIMENT_SKIP_DB" to "true"),
+        )
+    }
+}
+tasks.register("memTestF-all") {
+    dependsOn((1..5).flatMap { t -> listOf("memTestF-dbon-t$t", "memTestF-dboff-t$t") })
+}
+
+// E: repeated trials of C — variance check (5 runs per batch size)
+listOf(100, 500, 1000, 5000, 10000).forEach { batchSize ->
+    (1..5).forEach { trial ->
+        tasks.register<Test>("memTestE-batch${batchSize}-t${trial}") {
+            configureExperiment(
+                heap = "64m",
+                label = "64m-batch${batchSize}-t${trial}",
+                extraEnv = mapOf("EXPERIMENT_BATCH_SIZE" to batchSize.toString()),
+            )
+        }
+    }
+}
+tasks.register("memTestE-all") {
+    dependsOn(listOf(100, 500, 1000, 5000, 10000).flatMap { b ->
+        (1..5).map { t -> "memTestE-batch${b}-t${t}" }
+    })
+}
+
 // D: input-size sweep. 1x = original zip, 10x/100x = synthesized first.
 listOf(10, 100).forEach { mul ->
     tasks.register<JavaExec>("synthZip-${mul}x") {

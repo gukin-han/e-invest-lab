@@ -37,6 +37,8 @@ public class CorpCodeFetchSmokeTestV3 {
         System.getenv().getOrDefault("EXPERIMENT_ITERATIONS", "1"));
     public static final int INPUT_MULTIPLIER = Integer.parseInt(
         System.getenv().getOrDefault("EXPERIMENT_INPUT_MULTIPLIER", "1"));
+    public static final boolean SKIP_DB = Boolean.parseBoolean(
+        System.getenv().getOrDefault("EXPERIMENT_SKIP_DB", "false"));
     public static final int RESOLUTION = 5000;
     private static final DateTimeFormatter DART_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final Path ZIP_CACHE_DIR =
@@ -191,22 +193,24 @@ public class CorpCodeFetchSmokeTestV3 {
     }
 
     private void flush(List<CompanyRow> batch, int totalCount) {
-        String sql = """
-            INSERT INTO companies (corp_code, name, english_name, stock_code, master_modify_date)
-            VALUES (?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-              name = VALUES(name),
-              english_name = VALUES(english_name),
-              stock_code = VALUES(stock_code),
-              master_modify_date = VALUES(master_modify_date)
-            """;
-        jdbc.batchUpdate(sql, batch, batch.size(), (ps, row) -> {
-            ps.setString(1, row.corpCode());
-            ps.setString(2, row.name());
-            ps.setString(3, row.englishName());
-            ps.setString(4, row.stockCode());
-            ps.setObject(5, row.modifyDate());
-        });
+        if (!SKIP_DB) {
+            String sql = """
+                INSERT INTO companies (corp_code, name, english_name, stock_code, master_modify_date)
+                VALUES (?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                  name = VALUES(name),
+                  english_name = VALUES(english_name),
+                  stock_code = VALUES(stock_code),
+                  master_modify_date = VALUES(master_modify_date)
+                """;
+            jdbc.batchUpdate(sql, batch, batch.size(), (ps, row) -> {
+                ps.setString(1, row.corpCode());
+                ps.setString(2, row.name());
+                ps.setString(3, row.englishName());
+                ps.setString(4, row.stockCode());
+                ps.setObject(5, row.modifyDate());
+            });
+        }
         batch.clear();
 
         Runtime rt = Runtime.getRuntime();

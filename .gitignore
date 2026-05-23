@@ -50,3 +50,6 @@ application-local.properties
 
 ### Claude session data ###
 .claude/
+
+### Experiment raw data (regenerable via ./gradlew memTest*) ###
+docs/adr/streaming-memory-experiment/v3-heap-*.csv

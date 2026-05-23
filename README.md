@@ -9,6 +9,10 @@
 - [HikariCP 커넥션 고갈 추적기](https://gukin-han.tistory.com/67) — Virtual Thread 700개가 풀 10개에 막힌 문제. HikariCP 소스 분석으로 원인을 파악하고 트랜잭션 경계 분리로 해결.
 - [Virtual Thread 도입](https://gukin-han.tistory.com/55) — Virtual Thread 도입 배경과 구조 변경 과정.
 
+## 실험 보고서
+
+- [스트리밍 메모리 footprint 측정 (V3)](docs/adr/streaming-memory-experiment/README.md) — DART corpCode.xml(30MB ~ 3GB) 스트리밍 파싱 + MySQL upsert 흐름의 메모리 footprint를 5개 축으로 sweep. 정량 결과: `footprint ≈ 0.0025MB/row × batch + 2.2MB(JDBC)`. 100배 큰 합성 zip(3GB XML, 11.8M rows)도 -Xmx64m에서 처리됨을 확인.
+
 ## 기술 스택
 
 - **Backend**: Java 21, Spring Boot, JPA, Virtual Thread

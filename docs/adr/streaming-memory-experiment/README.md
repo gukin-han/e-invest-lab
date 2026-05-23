@@ -1,21 +1,39 @@
 # V3 스트리밍 메모리 실험 — DB 쓰기 포함 end-to-end
 
-> 2026-05-21. `CorpCodeFetchSmokeTestV3` 기반.
+> 측정 기간: 2026-05-21 ~ 2026-05-23
+> 코드: [`CorpCodeFetchSmokeTestV3.java`](../../../src/test/java/dev/gukin/einvestlab/company/CorpCodeFetchSmokeTestV3.java)
 
-V1/V2가 검증한 건 "파싱 → 버림"까지의 메모리 일정성. V3는 DB upsert를 포함한 end-to-end 흐름에서도 같은 패턴이 유지되는지, 그리고 어떤 차원이 footprint를 실제로 움직이는지 본다.
+## Summary
+
+```
+메모리 footprint ≈ (1 row당 메모리 단가) × batch 사이즈 + JDBC 인터널
+                ≈ 0.0025 MB/row × batch + 2.2 MB
+```
+
+- **lever 변수**: batch 사이즈 (정거장 크기)
+- **무관 변수**: heap 한도, 입력 크기(단일 / 누적), 누적 호출 수
+- **상수 가산**: JDBC 인터널 ~2.2MB
+- 측정 한계 사례: 100배 큰 입력(3GB XML, 11.8M rows)도 -Xmx64m 안에서 처리
+
+## 배경
+
+V1/V2가 검증한 것은 "파싱 → 도메인 객체 생성 → 즉시 폐기" 흐름의 메모리 일정성. V3는 DB upsert를 포함한 end-to-end 흐름에서도 동일 패턴이 유지되는지, 어떤 차원이 footprint를 실제로 움직이는지 측정한다.
+
+"정거장 모델"은 이 프로젝트 내 비유로, 스트리밍 파이프라인의 메모리 footprint가 처리 데이터 크기가 아니라 한 번에 머무는 객체 수(= batch 사이즈)에만 비례한다는 가설을 가리킨다.
 
 ## 실험 설계
 
-4개 축으로 sweep:
+5개 축으로 sweep:
 
 | 차원 | 변수 | 값 |
 |---|---|---|
 | A | heap 한도 | 32m / 64m / 128m / 256m (batch=1000, iter=1, input=1x) |
 | B | 누적 반복 횟수 | iter=10 × heap ∈ {32m, 64m, 128m} (batch=1000, input=1x) |
-| C | batch 사이즈 | 100 / 500 / 1000 / 5000 / 10000 (heap=64m, iter=1, input=1x) |
+| C | batch 사이즈 | 100 / 500 / 1000 / 5000 / 10000 (heap=64m, iter=1, input=1x) — 5 trial씩 |
 | D | **단일 입력 크기** | 1x / 10x / 100x (heap=64m, batch=1000, iter=1) — 합성 zip |
+| F | **DB 호출 on/off** | dbon / dboff (heap=64m, batch=1000, iter=1) — 5 trial씩 |
 
-총 15 케이스. DART 호출은 한 번뿐 (`~/.cache/e-invest-lab/corpCode.zip`에 캐싱). 10x/100x는 [`CorpCodeSyntheticZip`](../../../src/test/java/dev/gukin/einvestlab/company/CorpCodeSyntheticZip.java)으로 합성.
+DART 호출은 한 번뿐 (`~/.cache/e-invest-lab/corpCode.zip`에 캐싱). 10x/100x는 [`CorpCodeSyntheticZip`](../../../src/test/java/dev/gukin/einvestlab/company/CorpCodeSyntheticZip.java)으로 합성.
 
 ## 셋업
 
@@ -42,7 +60,7 @@ build task: `memTest{32m,...,256m}`, `memTestB-{32m,64m,128m}-iter10`, `memTestC
 
 **핵심:** 한도를 8배 키워도 heap **최저점은 26~28MB로 묶임**. 늘어나는 건 톱니의 진폭(GC가 게을러지면서 쌓이는 garbage). 즉:
 - 실제 필요 메모리(정거장 크기) ≈ 28MB
-- 한도 H는 GC slack만 키움
+- heap 한도는 GC slack만 키움
 - "필요한 메모리"와 "한도"는 직교
 
 V1/V2가 본 메모리 일정성이 DB 쓰기를 포함해도 깨지지 않음. batch flush 직전이 가장 위험한 순간인데도 30MB(32m), 58MB(64m)에서 안전.
@@ -63,33 +81,37 @@ V1/V2가 본 메모리 일정성이 DB 쓰기를 포함해도 깨지지 않음. 
 
 ![B — iteration sweep](v3-heap-iterations.png)
 
-**핵심:** N을 10배로 늘려도(118k → 1.18M) heap 패턴 동일. A에서 본 한도별 밴드가 그대로 유지됨. 다른 말로:
-- footprint = f(batch size)만, N과 H 양쪽 모두와 독립
+**핵심:** 입력 크기를 10배로 늘려도(118k → 1.18M) heap 패턴 동일. A에서 본 한도별 밴드가 그대로 유지됨. 다른 말로:
+- footprint는 batch size에만 의존, 입력 크기 / heap 한도 양쪽 모두와 독립
 - 더 큰 워크로드에서도 OOM 위험 동일하게 없음
 
 throughput은 한도가 클수록 약간씩 증가 (32m: 36k/s → 128m: 49k/s). GC가 덜 도는 만큼.
 
 ## C — batch 사이즈 sweep
 
-`-Xmx64m` 고정, batch만 변경.
+`-Xmx64m` 고정, batch만 변경. 5 trial 평균 (각 case마다 5번 반복 측정).
 
-| batch | flush 횟수 | heap 범위 | 시간 | 처리량 |
+| batch | flush 횟수 | heap 범위 (mean) | 시간 (mean) | 처리량 (mean) |
 |---|---|---|---|---|
-| 100 | 1182 | 26~58MB | 14.96s | 7.9k/s |
-| 500 | 237 | 27~57MB | 4.61s | 25.6k/s |
-| 1000 | 119 | 28~57MB | 3.71s | 31.9k/s |
-| **5000** | **24** | **41~49MB** | **2.75s** | **43.0k/s** |
-| 10000 | 12 | 45~56MB | 2.84s | 41.7k/s |
+| 100 | 1182 | 25~58MB | 12.36s | 9.6k/s |
+| 500 | 237 | 26~58MB | 4.60s | 25.7k/s |
+| 1000 | 119 | 27~57MB | 3.72s | 31.9k/s |
+| **5000** | **24** | **39~49MB** | **2.72s** | **43.5k/s** |
+| 10000 | 12 | 46~57MB | 2.87s | 41.2k/s |
 
-![C — batch sweep](v3-heap-batch.png)
+5 trial std는 대부분 ≤ 0.5MB / ≤ 0.3s. 측정 안정적.
 
-![C — batch summary](v3-heap-batch-summary.png)
+![C — batch sweep (overlay)](v3-heap-batch.png)
 
-**핵심 1 — footprint 모양:** batch가 커질수록 heap의 **최저점**이 올라감 (28MB → 45MB). 정거장 안에 더 많이 쌓아두니까 당연. 즉 **정거장 크기 = f(batch)**.
+![C — batch summary (5 trial scatter + mean)](v3-heap-batch-summary.png)
 
-**핵심 2 — throughput:** batch=100은 7.9k/s로 5배 느림 (JDBC round trip 1182번). batch=5000에서 43k/s로 정점, 10000은 거의 같음 — JDBC round trip 감소 효과가 포화. 더 키워도 이득 없고 footprint만 자람.
+**핵심 1 — footprint 모양:** batch가 커질수록 heap의 **최저점**이 올라감 (27MB → 46MB). 정거장 안에 더 많이 쌓아두니까 당연. 즉 **정거장 크기 = f(batch)**.
 
-**핵심 3 — sweet spot:** batch=5000이 throughput 최고, peak heap도 49MB로 가장 낮음 (12000건 미만일 때 flush 진폭이 GC와 잘 맞음). batch=1000은 안전한 기본값이지만 **5000으로 가면 35% 빠름**.
+**핵심 2 — throughput:** batch=100은 9.6k/s로 4.5배 느림 (JDBC round trip 1182번). batch=5000에서 43.5k/s로 정점, 10000은 약간 떨어짐 — JDBC round trip 감소 효과 포화 + 큰 batch의 overhead 시작.
+
+**핵심 3 — sweet spot:** batch=5000이 throughput 최고, peak heap도 49MB로 가장 낮음 (band 10MB로 가장 좁음 — GC가 mixed mode로 자주 돌면서 한도까지 안 올라감). batch=1000은 안전한 기본값이지만 **5000으로 가면 36% 빠름**.
+
+**핵심 4 — 1000 → 5000 사이 promote 임계:** floor가 27→39MB로 +12MB 점프 (같은 5배 변화인데 100→500은 +1MB뿐). 임시 객체가 young gen 안에서 회수되던 영역(≤1000)에서 old gen으로 promote되는 영역(≥5000)으로 GC 모드가 전환된 것으로 보임.
 
 ## D — 단일 입력 크기 sweep
 
@@ -108,22 +130,45 @@ throughput은 한도가 클수록 약간씩 증가 (32m: 36k/s → 128m: 49k/s).
 
 **핵심:** **3GB XML이 30MB XML과 동일한 64MB 힙에 들어감.** Peak heap은 57MB로 입력 크기와 정확히 무관. 시간은 입력에 선형 (오른쪽 그래프의 점선이 ideal linear). 100x에서 throughput이 살짝 더 좋은 건 JVM warm-up + JIT 효과.
 
-B(반복)와 메시지가 다른 점: B는 "10번 호출해도 누적 메모리 일정", D는 "한 번에 100배 큰 입력도 같은 메모리". 정거장 모델이 두 시나리오 모두에 적용됨을 분리 확인.
+B 차원(반복)과 메시지가 다른 점: B는 "10번 호출해도 누적 메모리 일정", D는 "한 번에 100배 큰 입력도 같은 메모리". 정거장 모델이 두 시나리오 모두에 적용됨을 분리 확인.
+
+## F — DB on/off 비교
+
+V3-B의 floor(28MB)가 V2의 floor(~25MB)보다 약간 높았던 게 DB가 정거장에 들고 있는 메모리 때문인지 정량 측정.
+
+코드에 `EXPERIMENT_SKIP_DB=true` 한 줄 분기만 추가. `batchUpdate()` 호출만 토글, `batch.clear()` + CSV 측정은 그대로 → **DB 호출 단변수**. 각 조건 5 trial.
+
+| | floor (min) mean±std | peak (max) mean±std | 시간 |
+|---|---|---|---|
+| DB off | 25.2±0.4MB | 57.4±0.8MB | 0.48s |
+| DB on | 27.4±0.5MB | 57.4±0.5MB | 4.48s |
+| **Δ** | **+2.2MB** | **+0.0MB** | **+4.00s** |
+
+![F — DB on/off](v3-heap-db.png)
+
+**핵심:**
+1. **Floor +2.2MB** — JDBC 인터널(PreparedStatement params, MySQL driver packet buffer 등)이 정거장에 잔존
+2. **Peak 동일** — DB가 garbage 생성 속도는 안 키움. GC는 한도 근처에서 동일 동작
+3. **시간의 9/10이 DB 쓰기** — 메모리 비용보다 시간 비용이 압도적
+4. **V2와 정확히 일치** — V2 minimum ~25MB ≈ dboff 25.2MB. V2/V3 비교 신뢰성 확인
+
+정거장 모델은 깨지지 않음. JDBC 상수 ~2MB만 추가.
 
 ## 종합
 
-V1/V2의 "정거장 모델" 명제를 세 축에서 더 확인:
+V1/V2의 "정거장 모델" 명제를 네 축에서 더 확인:
 
 1. **heap 한도와 무관** — 한도는 GC slack만 키움 (A)
 2. **누적 호출 수와 무관** — 같은 워크 10번 반복해도 패턴 동일 (B)
 3. **batch 사이즈에만 비례** — flush 사이 쌓이는 양이 정거장 크기 결정 (C)
 4. **단일 입력 크기와 무관** — 100배 큰 zip을 한 번에 처리해도 peak heap 동일 (D)
+5. **DB 호출은 상수만 추가** — floor에 ~2.2MB 가산, 비례 항 아님 (F)
 
 다른 말로 ADR의 정리:
 
-> `footprint(N, H, B) ≈ c · B`
+> **메모리 footprint ≈ (1 row당 메모리 단가) × batch 사이즈 + JDBC 인터널(~2MB)**
 >
-> N(입력), H(heap 한도)는 footprint에 영향 없음. batch B만이 정거장 크기를 결정. 상수 c는 row 1건의 도메인 객체 + JDBC 인터널 메모리 발자국.
+> 입력 크기·heap 한도는 footprint에 영향 없음. batch 사이즈만이 정거장 크기를 비례적으로 결정. 1 row당 메모리 단가는 도메인 객체(`CompanyRow`)로 V3-C에서 대략 0.0025MB/row로 측정됨. JDBC 인터널은 V3-F에서 약 2.2MB의 floor 상수로 측정됨.
 
 ## 후속 결정 후보
 
