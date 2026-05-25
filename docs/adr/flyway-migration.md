@@ -75,10 +75,25 @@ spring.flyway.locations=classpath:db/migration
 - 변경 필요 시 **새 `V{n+1}__{설명}.sql` 추가**.
 - 어노테이션과 `.sql` 동기화 책임은 PR 작성자에게. 컴파일 + 시작 시 validate가 자동 검증.
 
-## 후속 작업 (남음)
+## Spring Boot 4.0 함정 — `spring-boot-flyway` 모듈 별도 필요
 
-- [ ] `src/test/resources/application.properties` 의 `ddl-auto=create-drop` 도 `validate` 로 통일 (Flyway 일관성)
-- [ ] UUID v7 생성기 도입 (회사 마스터 영속화 단계에서)
+Spring Boot 4.0 부터 modular autoconfiguration 으로 전환되면서 Flyway 자동 구성이 별도 모듈로 분리됨.
+
+```kotlin
+// 의존성 전체
+implementation("org.springframework.boot:spring-boot-flyway")   // 자동 구성 — Spring Boot 4.0 에서 신규 필요
+implementation("org.flywaydb:flyway-mysql")                      // MySQL 8 native protocol 지원
+// flyway-core 는 위 두 모듈이 transitive 로 가져옴 — 명시 declaration 불필요
+```
+
+증상: `org.flywaydb:flyway-core` 만 declare 하면 의존성은 classpath 에 있지만 Spring Boot 가 Flyway 자동 구성을 트리거하지 않음. 결과로 `db/migration/*.sql` 이 실행되지 않고, `ddl-auto=validate` 일 때 "Schema validation: missing table" 로 시작 실패. 자동 구성 매칭 로그에도 Flyway 가 등장하지 않아 원인 추적에 시간 소요.
+
+Spring Boot 4.0 의 modular 자동 구성 패턴 — 다른 통합도 같은 패턴: `spring-boot-hibernate`, `spring-boot-jdbc`, `spring-boot-data-jpa` 등 별도 모듈. 의존성 그룹만 추가하고 자동 구성 모듈 빼먹지 않게 주의.
+
+## 후속 작업 (완료)
+
+- [x] `src/test/resources/application.properties` 의 `ddl-auto=create-drop` 도 `validate` 로 통일
+- [x] UUID v7 생성기 도입 — `dev.gukin.einvestlab.global.id.Ids` (uuid-creator 라이브러리 wrapping)
 
 ## 참고
 
