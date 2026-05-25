@@ -50,14 +50,17 @@ processed=115000 heap=19MB / 32MB
 
 heap이 19~26MB로 카운트와 무관하게 등락. **32MB 안에서 117k 처리 완료.** 만약 DOM이었으면 OOM이었을 양.
 
-이걸 더 자세히 보고 싶어서 `-Xmx64m + -Xlog:gc`로 한 번 더 돌렸다. 같은 워크로드, GC 이벤트까지 시각화.
+이걸 더 자세히 보고 싶어서 `-Xmx64m + -Xlog:gc + 10ms 시간 기반 heap sampling`으로 한 번 더 돌렸다. 같은 워크로드, X축은 시간, GC 이벤트와 batch flush 시점을 분리해서 시각화 (2026-05-25 재측정).
 
-![V1 — 64m 측정 + GC 이벤트](heap-pattern.png)
+![V1 redo — 시간 축, 10ms heap samples + batch flush points + GC 이벤트](v3-heap-v1redo-time.png)
 
 해석:
+- 회색 곡선 = 10ms마다 측정한 진짜 heap (53 sample)
+- 주황 점 = batch flush 시점 (119개)
+- 역삼각형 = GC 이벤트 (Young Normal / Prepare Mixed / Mixed / Concurrent Start)
 - 톱니 모양 — 정거장 가득 → GC → 비움 → 다시 채움
-- Young Normal → Prepare Mixed → Mixed → Concurrent Start: G1GC의 자연스러운 생애주기
-- 한도까지 안 차고 54~57MB에서 steady state
+- 첫 톱니 (0~40ms)가 다른 톱니보다 alloc 느림 → **JIT warm-up zone**. 24MB에서 천천히 35MB로 상승
+- 그 후 톱니 모양이 일정. 한도까지 안 차고 25~55MB band에서 steady state
 
 **한 번이 우연 아닐까?**
 
@@ -67,18 +70,20 @@ heap이 19~26MB로 카운트와 무관하게 등락. **32MB 안에서 117k 처�
 
 **의도:** 한 번 작동했다고 끝이 아님. 누적 처리량을 늘려도 패턴이 유지되는지 본다. 처리량과 메모리가 분리됐다는 명제를 강화해야 한다.
 
-**조건:** `-Xms64m -Xmx64m`, 같은 zip을 10번 반복 처리(누적 1.17M 행), batch 1000, `-Xlog:gc`.
+**조건:** `-Xmx64m`, 같은 zip을 10번 반복 처리(누적 1.18M 행), batch 1000, `-Xlog:gc + 10ms heap sampling` (2026-05-25 재측정).
 
-![V2 — 10x 누적 처리](heap-pattern-v2.png)
+![V2 redo — 시간 축, 10 iteration × 톱니, 47 GC 이벤트](v3-heap-v2redo-time.png)
 
 결과:
-- 1.17M 행 처리 완료
-- Evacuation Failure 10번 (점 표시), Full GC 1번 (Emergency)
-- 한 번 emergency 났는데도 그 후 다시 복구해서 끝까지 처리
+- 1.18M 행 처리 완료, 총 ~2.8초
+- 47 GC 이벤트 (Normal 44, Mixed 1, Prepare Mixed 1, Concurrent Start 1)
+- 10 iteration boundary 표시 (점선)
+- 매 iteration 안에 톱니 3~4개씩 일정 패턴 반복
 
 해석:
 - 패턴 동일. **누적 처리량 10배여도 footprint는 64MB 한도 안에서 안정**
-- Full GC가 한 번 났어도 OOM 안 났다는 게 오히려 강한 증거 (한계 근처에서도 자동 복구)
+- 첫 iteration이 가장 큰 톱니 — JIT warm-up 영역
+- 이후 톱니 모양이 거의 동일 → **정거장 모델이 누적 처리에서도 사이클 모양 유지**의 직접 증명
 - **단, 여기까지는 "파싱 → 도메인 객체 만들고 버림"까지.** 운영에선 DB upsert가 끼어야 한다.
 
 **그게 정거장 모델을 깨뜨릴 가능성?**
