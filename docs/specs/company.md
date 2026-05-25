@@ -179,7 +179,7 @@ erDiagram
         varchar   name                      "회사명 (정본 — 마스터 기준)"
         varchar   english_name              "영문명"
         char(6)   stock_code                "nullable, 종목코드"
-        date      master_modify_date        "corpCode.xml의 modify_date"
+        date      master_modified_date        "corpCode.xml의 modify_date"
 
         varchar   stock_name                "프로필 — nullable. 종목명 (회사명과 다를 수 있음)"
         varchar   market_type               "프로필 — nullable. MarketType enum (KOSPI/KOSDAQ/KONEX/UNLISTED)"
@@ -198,7 +198,7 @@ erDiagram
 
 ```sql
 WHERE profile_synced_at IS NOT NULL          -- 프로필 받은 회사만 대상
-  AND master_modify_date > profile_modify_date   -- 마스터가 더 새로움 → stale
+  AND master_modified_date > profile_modify_date   -- 마스터가 더 새로움 → stale
 ```
 
 시간 기반 만료 정책 없음 (DART의 `modify_date`가 기업개황 전체 변경을 반영).
