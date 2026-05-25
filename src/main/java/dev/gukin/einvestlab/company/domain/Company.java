@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.domain.model;
+package dev.gukin.einvestlab.company.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
