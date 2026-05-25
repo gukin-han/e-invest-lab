@@ -40,8 +40,9 @@ public class Company {
     private LocalDate masterModifiedDate;
 
     @Builder
-    public Company(String corpCode, String name, String englishName,
+    public Company(UUID id, String corpCode, String name, String englishName,
                    String stockCode, LocalDate masterModifiedDate) {
+        this.id = id;
         this.corpCode = corpCode;
         this.name = name;
         this.englishName = englishName;

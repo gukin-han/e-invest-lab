@@ -22,27 +22,3 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-
-  # OpenAI api-key 는 application-local.properties 에서 주입
-  ai:
-    openai:
-      chat:
-        options:
-          model: gpt-4o-mini
-          temperature: 0.3
-      api-key: ${OPENAI_API_KEY:}
-
-dart:
-  api:
-    base-url: https://opendart.fss.or.kr/api
-    key: ${DART_API_KEY:}
-  polling:
-    interval: 60000
-
-kis:
-  api:
-    base-url: https://openapivts.koreainvestment.com:29443
-    appkey: ${KIS_APP_KEY:}
-    appsecret: ${KIS_APP_SECRET:}
-  polling:
-    interval: 300000
