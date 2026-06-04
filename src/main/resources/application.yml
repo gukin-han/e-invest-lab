@@ -22,3 +22,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+dart:
+  api:
+    base-url: https://opendart.fss.or.kr/api
+    key: ${DART_API_KEY:}
