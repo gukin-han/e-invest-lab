@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra;
+package dev.gukin.einvestlab.company.infra.db;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRepository;
@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
-public class CompanyRepositoryImpl implements CompanyRepository {
+public class CompanyRepositoryAdapter implements CompanyRepository {
 
     private final CompanyJpaRepository jpa;
 
