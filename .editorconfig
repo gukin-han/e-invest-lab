@@ -9,3 +9,9 @@ trim_trailing_whitespace = true
 [*.{java,kt,kts,gradle}]
 indent_style = space
 indent_size = 4
+
+[*.java]
+ij_java_continuation_indent_size = 8
+ij_java_align_multiline_chained_methods = false
+ij_java_class_count_to_use_import_on_demand = 999
+ij_java_names_count_to_use_import_on_demand = 999
