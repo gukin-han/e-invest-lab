@@ -1,4 +1,4 @@
-# Company 도메인 스펙 (회사 마스터)
+# Company 도메인 스펙 (회사 등록부)
 
 > 참고: https://opendart.fss.or.kr/guide/main.do?apiGrpCd=DS001 의 [공시정보 > 기업개황, 고유번호]
 
@@ -20,7 +20,7 @@
                                       ↑ 여기만 메모리에 살아있음
 ```
 
-## 회사 마스터
+## 회사 등록부
 - URL
   - GET https://opendart.fss.or.kr/api/corpCode.xml
 - Request
@@ -158,7 +158,7 @@
 ## 적재전략
 
 - DART API 한도 :  4만건/일
-- 마스터(corpCode.xml)
+- 등록부(corpCode.xml)
   - 전체 적재
   - 일 단위 동기화 (새벽 1시?)
 - 프로필(company.json)
@@ -170,16 +170,16 @@
 
 ## ERD
 
-단일 `companies` 테이블 — 마스터 + 프로필을 하나로 합침. 프로필 미적재 행은 프로필 컬럼이 NULL.
+단일 `companies` 테이블 — 등록부 + 프로필을 하나로 합침. 프로필 미적재 행은 프로필 컬럼이 NULL.
 
 ```mermaid
 erDiagram
     companies {
         char(8)   corp_code             PK "DART 고유번호"
-        varchar   name                      "회사명 (정본 — 마스터 기준)"
+        varchar   name                      "회사명 (정본 — 등록부 기준)"
         varchar   english_name              "영문명"
         char(6)   stock_code                "nullable, 종목코드"
-        date      master_modified_date        "corpCode.xml의 modify_date"
+        date      registry_modified_date        "corpCode.xml의 modify_date"
 
         varchar   stock_name                "프로필 — nullable. 종목명 (회사명과 다를 수 있음)"
         varchar   market_type               "프로필 — nullable. MarketType enum (KOSPI/KOSDAQ/KONEX/UNLISTED)"
@@ -198,7 +198,7 @@ erDiagram
 
 ```sql
 WHERE profile_synced_at IS NOT NULL          -- 프로필 받은 회사만 대상
-  AND master_modified_date > profile_modify_date   -- 마스터가 더 새로움 → stale
+  AND registry_modified_date > profile_modify_date   -- 등록부가 더 새로움 → stale
 ```
 
 시간 기반 만료 정책 없음 (DART의 `modify_date`가 기업개황 전체 변경을 반영).
@@ -210,8 +210,8 @@ WHERE profile_synced_at IS NOT NULL          -- 프로필 받은 회사만 대�
 ### 적용한 설계 결정
 
 - **단일 테이블**: 프로필 필드 4개로 축소되어 분리 명분 약함 → 합침. 모든 조회에서 JOIN 없음.
-- **회사명 정본**: 마스터(`name`) 사용. 프로필 측 `corp_name`(`(주)` 포함형)은 보관 안 함.
-- **`stock_code` 단일 출처**: 마스터에서만 채움. 프로필 응답의 같은 값은 무시.
+- **회사명 정본**: 등록부(`name`) 사용. 프로필 측 `corp_name`(`(주)` 포함형)은 보관 안 함.
+- **`stock_code` 단일 출처**: 등록부에서만 채움. 프로필 응답의 같은 값은 무시.
 - **`market_type`**: 프로필 컬럼 (corpCode.xml에 corp_cls 없음). 프로필 미적재 회사의 상장 여부는 `stock_code` 유무로 1차 추정.
 - **인덱스 정책**: 추후 결정.
 - **미수집 필드 (YAGNI)**: `phn_no`, `fax_no`, `adres`, `hm_url`, `ir_url`, `ceo_nm`, `jurir_no`, `bizr_no`, `induty_code`, `est_dt`. 필요 발생 시 ALTER + DART 재호출로 추가.

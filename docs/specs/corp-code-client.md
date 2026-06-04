@@ -1,4 +1,4 @@
-# CompanyMasterClient — DART 회사 마스터 스트리밍 파서
+# CompanyRegistrySource — DART 회사 등록부 스트리밍 공급원
 
 > 단계 2 — V3 실험으로 검증된 스트리밍 파싱 로직을 운영 코드로 승격.
 > 관련: `docs/specs/company.md` (도메인 spec), `docs/adr/corpcode-streaming-parsing.md` (스트리밍 결정), `docs/adr/http-client.md` (JDK HttpClient 결정)
@@ -19,24 +19,25 @@ DART `/api/corpCode.xml` 호출 → 3.6MB zip → 30MB XML → 117k 회사 행�
 ```
 company/
 ├── domain/
-│   └── Company.java
+│   ├── Company.java
+│   └── CompanyRegistrySource.java
 └── infra/
     ├── db/
     │   ├── CompanyJpaRepository.java
     │   └── CompanyRepositoryAdapter.java
     └── http/
-        ├── CompanyMasterClient.java      (인터페이스 — 회사 마스터 클라이언트 포트)
-        ├── DartCompanyMasterClient.java  (구현 — JDK HttpClient + StAX)
+        ├── DartCompanyRegistryAdapter.java (DART HTTP 어댑터)
+        ├── DartCompanyRegistryReader.java  (corpCode zip + XML 스트리밍 reader)
         ├── DartApiProperties.java        (DART API 접속 설정)
         └── DartClientException.java      (DART 클라이언트 처리 예외)
 ```
 
-`CompanyMasterClient` 는 호출자 관점에서 "회사 마스터를 받는다"는 의도를 드러낸다. DART 출처는 구현체인 `DartCompanyMasterClient` 이름에만 둔다.
+`CompanyRegistrySource` 는 호출자 관점에서 "회사 등록부를 공급받는다"는 의도를 드러내는 도메인 포트다. DART 출처는 구현체인 `DartCompanyRegistryAdapter` 이름에만 둔다.
 
 ## 시그니처 결정
 
 ```java
-public interface CompanyMasterClient {
+public interface CompanyRegistrySource {
 
     /** DART 응답을 회사 단위로 스트리밍. 호출자가 한 행씩 처리. */
     void streamAll(Consumer<Company> handler);
@@ -81,7 +82,7 @@ DART 원형과 도메인 사이에 어디서 정규화하는가:
 
 추천: **A**. 정규화 규칙은 어댑터 안에 격리. 호출자 (동기화 서비스) 는 `Company` 만 받음.
 
-다만 raw 추적이 필요하면 (단계 3 의 modify_date 비교 등) 어떤 식으로 노출할지 검토 필요. 현재 안 — `Company` 가 `masterModifiedDate` 를 이미 가지므로 충분.
+다만 raw 추적이 필요하면 (단계 3 의 modify_date 비교 등) 어떤 식으로 노출할지 검토 필요. 현재 안 — `Company` 가 `registryModifiedDate` 를 이미 가지므로 충분.
 
 ## 정규화 규칙 (spec company.md 표 참조)
 
@@ -130,22 +131,22 @@ DART 응답 케이스:
 
 세 종류:
 
-종류 1 — **`CorpCodeMapperUnitTest`** (`infra/`)
+종류 1 — **`DartCompanyRegistryReaderUnitTest`** (`infra/http`)
 검증 동작:
 - `stock_code = " "` (공백 1개) 입력 시 `Company.stockCode == null`
 - `corp_eng_name` 입력 시 `Company.englishName` 으로 매핑
 - `modify_date = "20251201"` 입력 시 `LocalDate(2025,12,1)` 변환
 - 매 매핑마다 `Company.id` 가 발급됨 (UUID v7)
 
-종류 2 — **`CorpCodeStreamingParsingUnitTest`** (`infra/`)
+종류 2 — **`DartCompanyRegistryReaderFailureUnitTest`** (`infra/http`)
 검증 동작:
-- 합성 zip (`CorpCodeSyntheticZip` 패턴 재사용) → handler 가 모든 행 받음
-- 빈 zip → handler 0 회 호출
-- 손상된 xml → 예외 발생 + handler 부분 호출 후 중단
+- 비-zip 응답 body → `DartClientException`
+- xml entry 없는 zip → `DartClientException`
+- 손상된 xml → `DartClientException`
 
-종류 3 — **`CorpCodeFetchSmokeTest`** (`infra/`)
-- src/test/resources/fixtures/corpcode/CORPCODE.zip (실제 응답 1회분, 약 3MB)
-- 어댑터가 117k 행 모두 처리 + 첫/마지막 행 비즈니스 검증 (삼성전자 등 알려진 회사)
+종류 3 — **`DartCompanyRegistryFixtureSmokeTest`** (`infra/http`)
+- src/test/resources/fixtures/company/dart-corp-code.zip (실제 응답 1회분, 약 3MB)
+- reader 가 100k+ 행 전체 처리 + 알려진 회사 포함 검증 (삼성전자 등)
 - 메모리 회귀 감지 옵션: V3 의 heap 모니터 코드 재사용
 
 V3 의 `CorpCodeFetchSmokeTest`, `V2`, `V3` 등 실험 파일은 운영 코드 승격 후 삭제 또는 운영 스모크 테스트로 흡수.
@@ -160,18 +161,16 @@ V3 의 `CorpCodeFetchSmokeTest`, `V2`, `V3` 등 실험 파일은 운영 코드 �
 
 ## 의도적 미포함 (다른 단계)
 
-- 배치 buffer + upsert 흐름: 단계 3 `CompanyMasterSyncService`
+- 배치 buffer + upsert 흐름: 단계 3 `CompanyRegistrySyncService`
 - modify_date 증분 갱신 (stale 판정): 단계 3
-- 새벽 1시 cron: 단계 4 `CompanyMasterScheduler`
+- 새벽 1시 cron: 단계 4 `CompanyRegistryScheduler`
 - 회사 프로필 (company.json) 호출: 단계 1b (별도)
 - 재시도: 단계 3/4 중 결정
 
 ## 다음 첫 한 발 (사용자 확정 후)
 
 위 (1)~(5) 결정 받으면:
-1. `CorpCodeMapperUnitTest` 작성 → 컴파일 red 확인
-2. `CorpCodeMapper` 구현 → green
-3. `CorpCodeStreamingParsingUnitTest` 작성 → red
-4. `DartCompanyMasterClient` 구현 → green
-5. `CorpCodeFetchSmokeTest` (fixture zip) 작성 → green
-6. 단계 2 완료, 단계 3 진입
+1. `DartCompanyRegistryReaderUnitTest` 작성 → 합성 zip 파싱 검증
+2. `DartCompanyRegistryReaderFailureUnitTest` 작성 → 응답 형식 오류 검증
+3. `DartCompanyRegistryFixtureSmokeTest` 작성 → 실제 fixture zip 회귀 검증
+4. 단계 2 완료, 단계 3 진입

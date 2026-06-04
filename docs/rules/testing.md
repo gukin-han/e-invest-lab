@@ -22,8 +22,8 @@
 
 좋은 예:
 - `CompanyCreationUnitTest` — 회사 도메인 생성·필드 보존 동작
-- `CompanyMasterSyncIntegrationTest` — 마스터 동기화 시나리오
-- `CorpCodeStreamingParsingSmokeTest` — corpCode.xml 스트리밍 파싱 회귀
+- `CompanyRegistrySyncIntegrationTest` — 등록부 동기화 시나리오
+- `DartCompanyRegistryFixtureSmokeTest` — 실제 corpCode.xml zip fixture 파싱 회귀
 
 나쁜 예:
 - `CompanyTest`, `CompanyUnitTest` — 클래스 자체가 기준 (동작 불명)
@@ -44,18 +44,18 @@
 | `@Nested` 이너 클래스 | 시나리오·컨텍스트 |
 | `@Test` 메서드 | 요구사항 한 줄 |
 
-코드명(`Company`, `CorpCode`)·기술 용어(`null`, `entity`)는 가능한 자제. "회사", "DART 에서 받은 마스터 필드" 같은 비즈니스 표현 사용.
+코드명(`Company`, `CorpCode`)·기술 용어(`null`, `entity`)는 가능한 자제. "회사", "DART 에서 받은 등록부 필드" 같은 비즈니스 표현 사용.
 
 ```java
-@DisplayName("회사 마스터 도메인 생성")
+@DisplayName("회사 등록부 도메인 생성")
 class CompanyCreationUnitTest {
 
     @Nested
-    @DisplayName("마스터 필드로 회사를 등록할 때")
-    class WhenBuiltFromMasterFields {
+    @DisplayName("등록부 필드로 회사를 등록할 때")
+    class WhenBuiltFromRegistryFields {
 
         @Test
-        @DisplayName("DART 에서 받은 마스터 필드 5개를 그대로 보존한다")
+        @DisplayName("DART 에서 받은 등록부 필드 5개를 그대로 보존한다")
         void shouldHoldAllProvidedFields() { ... }
 
         @Test

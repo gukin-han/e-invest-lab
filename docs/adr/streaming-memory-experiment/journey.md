@@ -9,7 +9,7 @@
 
 ## 0. 출발: 30MB XML이 들어왔다 (2026-05-02)
 
-DART API의 `corpCode.xml`은 회사 마스터 전체 다운로드. zip 3.6MB → 풀면 XML 30MB. 매일 동기화해야 한다.
+DART API의 `corpCode.xml`은 회사 등록부 전체 다운로드. zip 3.6MB → 풀면 XML 30MB. 매일 동기화해야 한다.
 
 처음 떠올린 건 `DocumentBuilder.parse()`. 30MB 정도면 메모리에 통째로 올려도 되지 않나.
 

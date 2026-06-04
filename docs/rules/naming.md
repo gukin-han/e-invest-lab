@@ -8,7 +8,7 @@
 | 타입 | 접미사 | 의미 | 예시 |
 |---|---|---|---|
 | `LocalDateTime` / `Instant` / `OffsetDateTime` | **`xxxAt`** | 특정 시각 (날짜 + 시간) | `createdAt`, `updatedAt`, `disclosedAt`, `analyzedAt` |
-| `LocalDate` | **`xxxDate`** 또는 `xxxOn` | 날짜만 | `birthDate`, `expiryDate`, `tradingDate`, `masterModifiedDate` |
+| `LocalDate` | **`xxxDate`** 또는 `xxxOn` | 날짜만 | `birthDate`, `expiryDate`, `tradingDate`, `registryModifiedDate` |
 | `LocalTime` | `xxxTime` 또는 `xxxAt` | 시각만 (날짜 없음) | `openTime` |
 | `Duration` / `Period` | `xxxDuration` / `xxxPeriod` | 기간 | `timeoutDuration` |
 

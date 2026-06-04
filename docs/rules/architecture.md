@@ -38,12 +38,12 @@ dev.gukin.einvestlab
   - ✅ `CompanyRepositoryAdapter`
   - ❌ `CompanyRepositoryImpl`
   - 이유: `Impl` 은 구현 기술을 설명하지 못한다. 어댑터 역할을 이름에 드러낸다.
-- 외부 클라이언트 포트: 출처보다 도메인 자원을 먼저 드러낸다.
-  - ✅ `CompanyMasterClient`
+- 외부 공급원 포트: 출처보다 도메인 자원을 먼저 드러낸다.
+  - ✅ `CompanyRegistrySource`
   - ❌ `CorpCodeClient`
   - 이유: 호출자는 DART 원문 용어보다 "무엇을 받는가" 를 먼저 알아야 한다.
-- 외부 클라이언트 구현체: `{Provider}{Resource}Client`
-  - ✅ `DartCompanyMasterClient`
+- 외부 어댑터 구현체: `{Provider}{Resource}Adapter`
+  - ✅ `DartCompanyRegistryAdapter`
   - ❌ `DartCorpCodeClient`
   - 이유: 구현체에서만 출처를 드러내고, 리소스 이름은 도메인 언어로 유지한다.
 - 외부 API 설정: `{Provider}ApiProperties`

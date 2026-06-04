@@ -6,7 +6,7 @@
 - **결과**: `ddl-auto=update` → `validate`, 스키마 진본은 `src/main/resources/db/migration/V{n}__{설명}.sql`
 
 ## 컨텍스트
-- 회사 마스터 도메인 작업을 시작하면서 스키마가 4개에서 5개로 늘어남
+- 회사 등록부 도메인 작업을 시작하면서 스키마가 4개에서 5개로 늘어남
 - 운영 배포는 아직 안 했지만 가까운 시일 안 예정. 운영 환경에서 ddl-auto는 사실상 금기 — 인스턴스 다중 시작 시 충돌, 컬럼 의도치 않은 변경 등 사고 사례 다수
 - 회사에서는 Liquibase 사용 중. 사이드는 의도적으로 Flyway 차별 학습 자리로 활용
 
@@ -41,7 +41,7 @@
 ```
 src/main/resources/db/migration/
   V1__init.sql              # 살아있는 도메인 4개 (disclosure, analysis_report, market_reaction, stock_price)
-  V2__create_companies.sql  # 회사 마스터
+  V2__create_companies.sql  # 회사 등록부
 ```
 
 ### Spring Boot 통합
