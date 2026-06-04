@@ -37,16 +37,16 @@ public class Company {
     private String stockCode;
 
     @Column(nullable = false)
-    private LocalDate masterModifiedDate;
+    private LocalDate registryModifiedDate;
 
     @Builder
     public Company(UUID id, String corpCode, String name, String englishName,
-                   String stockCode, LocalDate masterModifiedDate) {
+                   String stockCode, LocalDate registryModifiedDate) {
         this.id = id;
         this.corpCode = corpCode;
         this.name = name;
         this.englishName = englishName;
         this.stockCode = stockCode;
-        this.masterModifiedDate = masterModifiedDate;
+        this.registryModifiedDate = registryModifiedDate;
     }
 }

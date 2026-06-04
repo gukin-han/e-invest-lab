@@ -18,7 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("회사 마스터 영속화 통합테스트")
+@DisplayName("회사 등록부 영속화 통합테스트")
 class CompanyPersistenceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -43,7 +43,7 @@ class CompanyPersistenceIntegrationTest extends AbstractIntegrationTest {
                     .name("삼성전자")
                     .englishName("SAMSUNG ELECTRONICS CO,.LTD")
                     .stockCode("005930")
-                    .masterModifiedDate(LocalDate.of(2025, 12, 1))
+                    .registryModifiedDate(LocalDate.of(2025, 12, 1))
                     .build();
 
             repository.save(company);
@@ -62,7 +62,7 @@ class CompanyPersistenceIntegrationTest extends AbstractIntegrationTest {
                     .name("다코")
                     .englishName("Daco corporation")
                     .stockCode(null)
-                    .masterModifiedDate(LocalDate.of(2017, 6, 30))
+                    .registryModifiedDate(LocalDate.of(2017, 6, 30))
                     .build();
 
             repository.save(company);
@@ -89,7 +89,7 @@ class CompanyPersistenceIntegrationTest extends AbstractIntegrationTest {
                     .id(Ids.generate())
                     .corpCode(corpCode)
                     .name("삼성전자")
-                    .masterModifiedDate(LocalDate.of(2025, 12, 1))
+                    .registryModifiedDate(LocalDate.of(2025, 12, 1))
                     .build());
         }
     }
