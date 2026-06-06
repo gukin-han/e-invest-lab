@@ -69,12 +69,17 @@ class DartCompanyRegistryFixtureSmokeTest {
 
 - 규칙
   - 메서드명: `shouldXxx` 카멜케이스, 영어
-  - 세부 컨텍스트는 `with...` 절로 붙일 수 있다.
+  - 세부 컨텍스트는 `With...` 절로 붙일 수 있다.
+  - `With...` 절은 underscore 없이 카멜케이스로 붙인다.
   - 컨텍스트 묶음은 `@Nested` 내부 클래스로 표현한다.
   - `@Nested` 클래스명은 `When...` 또는 `With...`로 시작한다.
+  - `When...`: “무엇을 할 때?”를 표현한다. 행위, 이벤트, 상태 전환, 유스케이스 실행 중심.
+  - `With...`: “어떤 조건/입력으로?”를 표현한다. 데이터 상태, 옵션, 누락 필드, 예외 입력, 환경 조건 중심.
+  - 조건을 설명하지 않는 의례적인 `@Nested`는 만들지 않는다.
 - 이유
   - 메서드명은 테스트 실행 결과에서 바로 읽힌다.
   - `@Nested`로 시나리오를 묶으면 메서드명에 모든 조건을 밀어 넣지 않아도 된다.
+  - `When...`과 `With...`를 구분하면 테스트 리포트가 대상 -> 주요 시나리오 -> 세부 조건 순서로 읽힌다.
 
 Bad:
 ```java
@@ -85,16 +90,24 @@ void build() {
 @Nested
 class UnlistedCompany {
 }
+
+@Test
+void shouldFlushRemainingCompanies_withPartialBatch() {
+}
 ```
 
 Good:
 ```java
 @Nested
-class WithUnlistedCompany {
+class WhenSyncingRegistry {
 
     @Test
-    void shouldAcceptNullStockCodeWithUnlistedCompany() {
+    void shouldFlushRemainingCompaniesWithPartialBatch() {
     }
+}
+
+@Nested
+class WithUnlistedCompany {
 }
 ```
 

@@ -5,6 +5,7 @@ import dev.gukin.einvestlab.company.domain.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,6 +17,16 @@ public class CompanyRepositoryAdapter implements CompanyRepository {
     @Override
     public Company save(Company company) {
         return jpa.save(company);
+    }
+
+    @Override
+    public int upsertCompanies(List<Company> companies) {
+        companies.forEach(company -> jpa.findByCorpCode(company.getCorpCode())
+                .ifPresentOrElse(
+                        existing -> existing.updateRegistryFieldsFrom(company),
+                        () -> jpa.save(company)
+                ));
+        return companies.size();
     }
 
     @Override

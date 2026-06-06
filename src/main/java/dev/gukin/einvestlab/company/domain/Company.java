@@ -49,4 +49,11 @@ public class Company {
         this.stockCode = stockCode;
         this.registryModifiedDate = registryModifiedDate;
     }
+
+    public void updateRegistryFieldsFrom(Company source) {
+        this.name = source.name;
+        this.englishName = source.englishName;
+        this.stockCode = source.stockCode;
+        this.registryModifiedDate = source.registryModifiedDate;
+    }
 }
