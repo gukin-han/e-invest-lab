@@ -13,6 +13,7 @@ import java.util.Optional;
 public class CompanyRepositoryAdapter implements CompanyRepository {
 
     private final CompanyJpaRepository jpa;
+    private final CompanyJdbcRepository jdbc;
 
     @Override
     public Company save(Company company) {
@@ -21,12 +22,7 @@ public class CompanyRepositoryAdapter implements CompanyRepository {
 
     @Override
     public int upsertCompanies(List<Company> companies) {
-        companies.forEach(company -> jpa.findByCorpCode(company.getCorpCode())
-                .ifPresentOrElse(
-                        existing -> existing.updateRegistryFieldsFrom(company),
-                        () -> jpa.save(company)
-                ));
-        return companies.size();
+        return jdbc.upsertCompanies(companies);
     }
 
     @Override
