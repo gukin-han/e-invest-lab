@@ -27,9 +27,9 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("회사를 1000개 단위로 저장한다")
         void shouldWriteCompaniesInBatches() {
-            CompanyRegistrySyncService service = serviceWithCompanies(2_500);
+            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(2_500);
 
-            CompanyRegistrySyncResult result = service.syncAll();
+            CompanyRegistrySyncResult result = useCase.syncAll();
 
             assertThat(writer.batches)
                     .extracting(List::size)
@@ -40,9 +40,9 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("등록부가 비어 있으면 저장하지 않는다")
         void shouldSkipWritingWithEmptyRegistry() {
-            CompanyRegistrySyncService service = serviceWithCompanies(0);
+            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(0);
 
-            CompanyRegistrySyncResult result = service.syncAll();
+            CompanyRegistrySyncResult result = useCase.syncAll();
 
             assertThat(writer.batches).isEmpty();
             assertThat(result.upsertedCount()).isZero();
@@ -51,9 +51,9 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("정확히 1000개면 한 번만 저장한다")
         void shouldWriteOnceWithFullBatch() {
-            CompanyRegistrySyncService service = serviceWithCompanies(1_000);
+            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(1_000);
 
-            CompanyRegistrySyncResult result = service.syncAll();
+            CompanyRegistrySyncResult result = useCase.syncAll();
 
             assertThat(writer.batches)
                     .extracting(List::size)
@@ -64,9 +64,9 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("저장할 때 원본 버퍼를 외부에 노출하지 않는다")
         void shouldNotExposeMutableBufferWhenWritingBatch() {
-            CompanyRegistrySyncService service = serviceWithCompanies(1_001);
+            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(1_001);
 
-            service.syncAll();
+            useCase.syncAll();
 
             assertThat(writer.batches)
                     .allSatisfy(batch -> assertThat(batch).isNotEmpty())
@@ -75,8 +75,8 @@ class CompanyRegistrySyncUnitTest {
         }
     }
 
-    private CompanyRegistrySyncService serviceWithCompanies(int count) {
-        return new CompanyRegistrySyncService(sourceWithCompanies(count), writer);
+    private CompanyRegistrySyncUseCase useCaseWithCompanies(int count) {
+        return new CompanyRegistrySyncUseCase(sourceWithCompanies(count), writer);
     }
 
     private CompanyRegistrySource sourceWithCompanies(int count) {

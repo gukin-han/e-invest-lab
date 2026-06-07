@@ -10,7 +10,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class CompanyRegistrySyncService {
+public class CompanyRegistrySyncUseCase {
 
     private static final int BATCH_SIZE = 1_000;
 

@@ -64,7 +64,41 @@ class CompanyPolicy {
 }
 ```
 
-## 3. 패키지는 기본적으로 평탄하게 유지한다
+## 3. application의 외부 진입 동작은 UseCase로 이름 짓는다
+
+- 규칙
+  - controller, scheduler, runner 같은 외부 adapter가 직접 호출하는 application 동작은 `{Behavior}UseCase`로 이름 짓는다.
+  - UseCase 클래스에는 `@Service`를 붙인다.
+  - UseCase 내부 협력 객체는 역할 이름을 쓰고 `@Component`를 붙인다.
+  - UseCase 메서드는 `execute`보다 도메인 동작이 드러나는 이름을 우선한다.
+- 이유
+  - application layer의 진입점과 내부 협력 객체를 구분한다.
+  - 같은 유스케이스를 HTTP, scheduler, runner가 재사용할 수 있게 한다.
+  - `execute`만 쓰면 호출부에서 동작 의미가 약해진다.
+
+Bad:
+```java
+@Service
+class CompanyRegistrySyncService {
+
+    CompanyRegistrySyncResult execute() {
+        ...
+    }
+}
+```
+
+Good:
+```java
+@Service
+class CompanyRegistrySyncUseCase {
+
+    CompanyRegistrySyncResult syncAll() {
+        ...
+    }
+}
+```
+
+## 4. 패키지는 기본적으로 평탄하게 유지한다
 
 - 규칙
   - 기본은 `domain`, `application`, `infra`, `interfaces` 아래를 평탄하게 둔다.
@@ -92,7 +126,7 @@ company
     └── http
 ```
 
-## 4. Repository 인터페이스는 domain에 두고 구현체는 infra/db에 둔다
+## 5. Repository 인터페이스는 domain에 두고 구현체는 infra/db에 둔다
 
 - 규칙
   - Repository 인터페이스: `domain`
@@ -122,7 +156,7 @@ class CompanyRepositoryAdapter {
 }
 ```
 
-## 5. JDBC 기반 저장 로직은 도메인 JDBC 저장소에 둔다
+## 6. JDBC 기반 저장 로직은 도메인 JDBC 저장소에 둔다
 
 - 규칙
   - 단순 CRUD와 일반 조회는 `{Domain}JpaRepository`에 둔다.
@@ -161,7 +195,34 @@ class CompanyRepositoryAdapter implements CompanyRepository {
 }
 ```
 
-## 6. 외부 API 포트와 어댑터 이름은 도메인 자원을 먼저 드러낸다
+## 7. HTTP endpoint prefix는 접근 주체와 운영 성격으로 구분한다
+
+- 규칙
+  - `/api/...`: 일반 사용자·클라이언트 기능
+  - `/internal/...`: 운영자·서버 내부·배치 트리거
+  - `/admin/...`: 관리자 화면·관리자 기능
+  - `/actuator/...`: 헬스체크, 메트릭, 운영 관측 엔드포인트
+  - 비용이 크거나 상태를 변경하는 운영 작업은 `/api/...`에 두지 않는다.
+- 이유
+  - URL만 봐도 접근 권한과 노출 범위를 추정할 수 있다.
+  - 운영 작업이 일반 사용자 API와 섞이면 인증, rate limit, 관측 정책이 흐려진다.
+  - 같은 application UseCase를 controller, scheduler, runner 같은 여러 adapter에서 재사용할 수 있다.
+
+Bad:
+```java
+@PostMapping("/api/companies/registry-sync")
+void syncRegistry() {
+}
+```
+
+Good:
+```java
+@PostMapping("/internal/company-registry/sync")
+void syncRegistry() {
+}
+```
+
+## 8. 외부 API 포트와 어댑터 이름은 도메인 자원을 먼저 드러낸다
 
 - 규칙
   - 외부 공급원 포트는 출처보다 도메인 자원을 먼저 드러낸다.
@@ -189,7 +250,7 @@ class DartCompanyRegistryAdapter {
 }
 ```
 
-## 7. 외부 API 설정과 예외 이름은 범위를 명확히 드러낸다
+## 9. 외부 API 설정과 예외 이름은 범위를 명확히 드러낸다
 
 - 규칙
   - 외부 API 설정 이름: `{Provider}ApiProperties`
@@ -217,7 +278,7 @@ class DartClientException extends RuntimeException {
 }
 ```
 
-## 8. 도메인 간 직접 의존하지 않는다
+## 10. 도메인 간 직접 의존하지 않는다
 
 - 규칙
   - 도메인 간 Entity를 직접 참조하지 않는다.
