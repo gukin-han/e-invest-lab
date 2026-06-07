@@ -12,7 +12,7 @@ import java.util.zip.ZipOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("DART 회사 등록부 응답 형식 오류")
+@DisplayName("DART 회사 등록부 응답 형식 오류 단위 테스트")
 class DartCompanyRegistryReaderFailureUnitTest {
 
     private final DartCompanyRegistryReader reader = new DartCompanyRegistryReader();

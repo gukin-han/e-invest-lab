@@ -17,7 +17,7 @@ import java.util.zip.ZipOutputStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-@DisplayName("DART 회사 등록부 파싱")
+@DisplayName("DART 회사 등록부 파싱 단위 테스트")
 class DartCompanyRegistryReaderUnitTest {
 
     private final DartCompanyRegistryReader reader = new DartCompanyRegistryReader();

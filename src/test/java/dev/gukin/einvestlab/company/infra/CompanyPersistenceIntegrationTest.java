@@ -18,7 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("회사 등록부 영속화 통합테스트")
+@DisplayName("회사 등록부 영속화 통합 테스트")
 class CompanyPersistenceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired

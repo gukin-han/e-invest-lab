@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("DART 회사 등록부 실제 응답 회귀")
+@DisplayName("DART 회사 등록부 실제 응답 회귀 스모크 테스트")
 class DartCompanyRegistryFixtureSmokeTest {
 
     private final DartCompanyRegistryReader reader = new DartCompanyRegistryReader();
