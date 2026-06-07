@@ -122,7 +122,46 @@ class CompanyRepositoryAdapter {
 }
 ```
 
-## 5. 외부 API 포트와 어댑터 이름은 도메인 자원을 먼저 드러낸다
+## 5. JDBC 기반 저장 로직은 도메인 JDBC 저장소에 둔다
+
+- 규칙
+  - 단순 CRUD와 일반 조회는 `{Domain}JpaRepository`에 둔다.
+  - batch upsert, bulk write, DB 전용 SQL은 `{Domain}JdbcRepository`에 둔다.
+  - `{Domain}RepositoryAdapter`는 domain Repository 포트를 구현하고 JPA/JDBC 저장소를 조합한다.
+  - 쿼리마다 DAO 클래스를 만들지 않는다.
+- 이유
+  - JPA와 native SQL 책임이 하나의 adapter에 섞이지 않게 한다.
+  - 성능 때문에 JDBC가 필요한 작업만 분리한다.
+  - 쿼리 단위 클래스를 남발하지 않고 도메인 저장소 단위로 응집시킨다.
+
+Bad:
+```java
+@Repository
+class CompanyRepositoryAdapter implements CompanyRepository {
+
+    private static final String UPSERT_SQL = "...";
+
+    private final CompanyJpaRepository jpa;
+    private final JdbcTemplate jdbc;
+}
+```
+
+Good:
+```java
+@Repository
+class CompanyRepositoryAdapter implements CompanyRepository {
+
+    private final CompanyJpaRepository jpa;
+    private final CompanyJdbcRepository jdbc;
+
+    @Override
+    public int upsertCompanies(List<Company> companies) {
+        return jdbc.upsertCompanies(companies);
+    }
+}
+```
+
+## 6. 외부 API 포트와 어댑터 이름은 도메인 자원을 먼저 드러낸다
 
 - 규칙
   - 외부 공급원 포트는 출처보다 도메인 자원을 먼저 드러낸다.
@@ -150,7 +189,7 @@ class DartCompanyRegistryAdapter {
 }
 ```
 
-## 6. 외부 API 설정과 예외 이름은 범위를 명확히 드러낸다
+## 7. 외부 API 설정과 예외 이름은 범위를 명확히 드러낸다
 
 - 규칙
   - 외부 API 설정 이름: `{Provider}ApiProperties`
@@ -178,7 +217,7 @@ class DartClientException extends RuntimeException {
 }
 ```
 
-## 7. 도메인 간 직접 의존하지 않는다
+## 8. 도메인 간 직접 의존하지 않는다
 
 - 규칙
   - 도메인 간 Entity를 직접 참조하지 않는다.
