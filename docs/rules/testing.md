@@ -115,7 +115,7 @@ class WithUnlistedCompany {
 
 - 규칙
   - 모든 테스트 레벨에 `@DisplayName`을 붙인다.
-  - 아우터 클래스: 검증 대상 도메인 영역
+  - 아우터 클래스: 검증 대상 도메인 영역 + 테스트 종류
   - `@Nested` 이너 클래스: 시나리오·컨텍스트
   - `@Test` 메서드: 요구사항 한 줄
   - 코드명(`Company`, `CorpCode`)과 기술 용어(`null`, `entity`)는 가능한 자제한다.
@@ -137,7 +137,7 @@ class CompanyUnitTest {
 
 Good:
 ```java
-@DisplayName("회사 등록부 도메인 생성")
+@DisplayName("회사 등록부 도메인 생성 단위 테스트")
 class CompanyCreationUnitTest {
 
     @Nested
@@ -152,16 +152,63 @@ class CompanyCreationUnitTest {
 }
 ```
 
-## 5. 검증은 가장 단순한 방식으로 묶는다
+## 5. 테스트 본문은 Arrange-Act-Assert 순서로 작성한다
 
 - 규칙
-  - 단일 값 검증: `assertThat(x).isEqualTo(y)`
-  - 한 객체의 여러 필드 검증: `assertThat(obj).extracting(...).containsExactly(...)`
-  - 서로 다른 객체·상태를 한 시나리오에서 함께 검증: `assertSoftly(softly -> { ... })`
-  - 한 객체 필드 비교에는 soft assertion을 쓰지 않는다.
+  - 테스트 본문은 준비, 실행, 검증 순서로 작성한다.
+  - 세 단계는 빈 줄로 구분한다.
+  - 단계가 길거나 의도가 흐려질 때만 `// arrange`, `// act`, `// assert` 주석을 사용한다.
+  - `// given`, `// when`, `// then` 주석은 사용하지 않는다.
 - 이유
-  - assertion 방식이 과하면 테스트 의도가 흐려진다.
+  - AAA는 JUnit 테스트에서 가장 보편적이고 중립적인 구조다.
+  - `@Nested class When...`과 본문 `// when`이 섞이면 용어가 중복된다.
+  - 모든 테스트에 주석을 강제하면 반복 소음이 된다.
+
+Bad:
+```java
+assertThat(result.upsertedCount()).isEqualTo(2_500);
+CompanyRegistrySyncResult result = service.syncAll();
+CompanyRegistrySyncService service = serviceWithCompanies(2_500);
+```
+
+Good:
+```java
+CompanyRegistrySyncService service = serviceWithCompanies(2_500);
+
+CompanyRegistrySyncResult result = service.syncAll();
+
+assertThat(result.upsertedCount()).isEqualTo(2_500);
+```
+
+## 6. 단일 값은 assertThat으로 바로 검증한다
+
+- 규칙
+  - 단일 값은 `assertThat(actual).isEqualTo(expected)`처럼 바로 검증한다.
+  - 불필요한 helper나 soft assertion으로 감싸지 않는다.
+- 이유
+  - 가장 작은 검증은 가장 직접적인 표현이 읽기 쉽다.
+  - 과한 구조화는 테스트 의도를 흐린다.
+
+Bad:
+```java
+assertSoftly(softly -> {
+    softly.assertThat(upsertedCount).isEqualTo(1);
+});
+```
+
+Good:
+```java
+assertThat(upsertedCount).isEqualTo(1);
+```
+
+## 7. 한 객체의 여러 필드는 extracting으로 묶는다
+
+- 규칙
+  - 한 객체의 여러 필드는 `assertThat(obj).extracting(...).containsExactly(...)`로 검증한다.
+  - 한 객체의 필드 비교에는 soft assertion을 쓰지 않는다.
+- 이유
   - 필드 묶음 검증은 “하나의 객체 상태”를 한 번에 보여준다.
+  - soft assertion으로 getter를 나열하면 어떤 객체 상태를 검증하는지 흩어진다.
 
 Bad:
 ```java
@@ -179,7 +226,140 @@ assertThat(company)
         .containsExactly("00126380", "삼성전자", "005930");
 ```
 
-## 6. 외부 API 테스트는 네트워크를 타지 않는다
+## 8. 컬렉션 원소의 여러 필드는 tuple로 묶는다
+
+- 규칙
+  - 리스트·컬렉션 원소의 여러 필드는 `extracting(...).containsExactly(tuple(...), tuple(...))`로 검증한다.
+  - 순서가 의미 있으면 `containsExactly`, 순서가 의미 없으면 `containsExactlyInAnyOrder`를 사용한다.
+- 이유
+  - 원소별 기대값이 한 줄에 모이면 컬렉션의 전체 모양을 비교하기 쉽다.
+  - 인덱스로 꺼내 여러 번 검증하면 실패 위치와 기대 구조가 흩어진다.
+
+Bad:
+```java
+assertThat(companies.get(0).getCorpCode()).isEqualTo("00126380");
+assertThat(companies.get(0).getName()).isEqualTo("삼성전자");
+assertThat(companies.get(1).getCorpCode()).isEqualTo("00434003");
+assertThat(companies.get(1).getName()).isEqualTo("다코");
+```
+
+Good:
+```java
+assertThat(companies)
+        .extracting(Company::getCorpCode, Company::getName)
+        .containsExactly(
+                tuple("00126380", "삼성전자"),
+                tuple("00434003", "다코")
+        );
+```
+
+## 9. 한 시나리오의 서로 다른 결과는 assertSoftly로 묶는다
+
+- 규칙
+  - 서로 다른 객체, DB 상태, 반환값, 이벤트 발행 여부를 한 시나리오에서 함께 검증할 때 `assertSoftly`를 사용한다.
+  - `assertSoftly`는 `org.assertj.core.api.SoftAssertions.assertSoftly`를 static import 한다.
+  - `assertSoftly` 안에서도 한 객체의 여러 필드는 `extracting(...).containsExactly(...)`로 묶는다.
+- 이유
+  - 한 시나리오의 여러 결과가 함께 실패할 수 있으면 실패 정보를 한 번에 보는 편이 좋다.
+  - soft assertion은 “여러 결과”를 묶는 도구이지 “한 객체 필드”를 나열하는 도구가 아니다.
+
+Bad:
+```java
+assertThat(jpaRepository.count()).isEqualTo(1);
+assertThat(upsertedCount).isEqualTo(1);
+assertThat(found.getName()).isEqualTo("삼성전자변경");
+```
+
+Good:
+```java
+assertSoftly(softly -> {
+    softly.assertThat(jpaRepository.count()).isEqualTo(1);
+    softly.assertThat(upsertedCount).isEqualTo(1);
+    softly.assertThat(found)
+            .extracting(Company::getName, Company::getStockCode)
+            .containsExactly("삼성전자변경", null);
+});
+```
+
+## 10. 반복되는 검증 묶음은 private assertion helper로 뺀다
+
+- 규칙
+  - 같은 검증 묶음이 여러 테스트에서 반복되면 private assertion helper로 뺀다.
+  - 한 테스트에서만 쓰는 검증은 인라인으로 둔다.
+- 이유
+  - 반복되는 assertion helper는 테스트 본문을 요구사항 중심으로 유지한다.
+  - 한 번만 쓰는 helper는 오히려 테스트를 읽을 때 이동 비용을 만든다.
+
+Bad:
+```java
+assertThat(company)
+        .extracting(Company::getCorpCode, Company::getName, Company::getStockCode)
+        .containsExactly("00126380", "삼성전자", "005930");
+```
+
+Good:
+```java
+assertCompanyRegistryFields(company, "00126380", "삼성전자", "005930");
+
+private void assertCompanyRegistryFields(Company company, String corpCode, String name, String stockCode) {
+    assertThat(company)
+            .extracting(Company::getCorpCode, Company::getName, Company::getStockCode)
+            .containsExactly(corpCode, name, stockCode);
+}
+```
+
+## 11. 테스트 기대값은 필요한 만큼만 구조화한다
+
+- 규칙
+  - 한 테스트에서 한 번만 쓰이고 의미가 바로 보이는 기대값은 인라인으로 둔다.
+  - 조건과 검증에 함께 쓰이거나 여러 번 반복되는 값은 `private static final` 상수로 둔다.
+  - 값만 봐서 의미가 불분명한 식별자는 상수명으로 의미를 붙인다.
+  - 함께 움직이는 기대값 묶음이 반복되면 테스트 내부 `private record` 또는 `enum`으로 묶는다.
+  - JPA entity 같은 mutable domain 객체를 enum 상수로 들고 있지 않는다.
+  - production VO는 검증 규칙과 재사용 필요가 명확할 때만 도입한다.
+- 이유
+  - 모든 값을 상수화하면 입력과 기대값이 멀어져 테스트를 읽기 어려워진다.
+  - 반복되거나 조건에 쓰이는 값은 이름을 붙여야 의도와 오타 위험이 분명해진다.
+  - 값 하나를 위해 VO를 만들면 테스트를 읽을 때 이동 비용이 커진다.
+  - 반복되는 값 묶음은 구조화해야 의미와 변경 범위가 분명해진다.
+  - 테스트 편의를 위해 production 모델을 복잡하게 만들지 않는다.
+
+Bad:
+```java
+private enum KnownCompany {
+    SAMSUNG(Company.builder()
+            .corpCode("00126380")
+            .name("삼성전자")
+            .stockCode("005930")
+            .build());
+}
+```
+
+Good:
+```java
+assertThat(company.getName()).isEqualTo("삼성전자");
+```
+
+Good:
+```java
+private static final String SAMSUNG_CORP_CODE = "00126380";
+private static final String SAMSUNG_NAME = "삼성전자";
+private static final String SAMSUNG_STOCK_CODE = "005930";
+```
+
+Good:
+```java
+private record KnownCompany(String corpCode, String name, String stockCode) {
+
+    void assertMatches(Company company) {
+        assertThat(company)
+                .extracting(Company::getCorpCode, Company::getName, Company::getStockCode)
+                .containsExactly(corpCode, name, stockCode);
+    }
+}
+```
+
+## 12. 외부 API 테스트는 네트워크를 타지 않는다
 
 - 규칙
   - 외부 API는 mock 또는 `src/test/resources/fixtures/...`의 고정 응답으로 테스트한다.
@@ -210,7 +390,7 @@ void shouldReadCompaniesFromFixture() {
 }
 ```
 
-## 7. 픽스처 파일은 도메인별 fixtures 디렉터리에 둔다
+## 13. 픽스처 파일은 도메인별 fixtures 디렉터리에 둔다
 
 - 규칙
   - 위치: `src/test/resources/fixtures/<도메인>/...`
@@ -232,7 +412,7 @@ Good:
 src/test/resources/fixtures/company/CORPCODE.zip
 ```
 
-## 8. 단위 테스트와 통합 테스트를 분리한다
+## 14. 단위 테스트와 통합 테스트를 분리한다
 
 - 규칙
   - 도메인 모델·서비스 단위 테스트: 순수 JUnit, Spring 컨텍스트 안 띄움
