@@ -1,5 +1,6 @@
 package dev.gukin.einvestlab.company.infra.http;
 
+import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ class DartCompanyRegistryReaderFailureUnitTest {
         InputStream body = new ByteArrayInputStream("{\"status\":\"013\"}".getBytes(StandardCharsets.UTF_8));
 
         assertThatThrownBy(() -> reader.read(body, company -> {
-        })).isInstanceOf(DartClientException.class);
+        })).isInstanceOf(CompanyRegistrySourceException.class);
     }
 
     @Test
@@ -32,7 +33,7 @@ class DartCompanyRegistryReaderFailureUnitTest {
         InputStream body = zip("README.txt", "not xml");
 
         assertThatThrownBy(() -> reader.read(body, company -> {
-        })).isInstanceOf(DartClientException.class)
+        })).isInstanceOf(CompanyRegistrySourceException.class)
                 .hasMessageContaining(".xml 항목이 없음");
     }
 
@@ -42,7 +43,7 @@ class DartCompanyRegistryReaderFailureUnitTest {
         InputStream body = zip("CORPCODE.xml", "<result><list><corp_code>00126380</corp_code>");
 
         assertThatThrownBy(() -> reader.read(body, company -> {
-        })).isInstanceOf(DartClientException.class)
+        })).isInstanceOf(CompanyRegistrySourceException.class)
                 .hasMessageContaining("스트림 파싱 실패");
     }
 

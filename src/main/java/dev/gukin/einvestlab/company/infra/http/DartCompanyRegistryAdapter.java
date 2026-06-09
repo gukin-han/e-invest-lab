@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.company.infra.http;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
+import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +27,7 @@ public class DartCompanyRegistryAdapter implements CompanyRegistrySource {
         try (InputStream zipBody = fetchCorpCodeZip()) {
             reader.read(zipBody, handler);
         } catch (IOException e) {
-            throw new DartClientException("corpCode 응답 스트림 읽기 실패", e);
+            throw new CompanyRegistrySourceException("corpCode 응답 스트림 읽기 실패", e);
         }
     }
 
@@ -38,14 +39,14 @@ public class DartCompanyRegistryAdapter implements CompanyRegistrySource {
             HttpResponse<InputStream> response =
                     httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() != 200) {
-                throw new DartClientException("DART corpCode HTTP " + response.statusCode());
+                throw new CompanyRegistrySourceException("DART corpCode HTTP " + response.statusCode());
             }
             return response.body();
         } catch (IOException e) {
-            throw new DartClientException("DART corpCode 요청 실패", e);
+            throw new CompanyRegistrySourceException("DART corpCode 요청 실패", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DartClientException("DART corpCode 요청 중단됨", e);
+            throw new CompanyRegistrySourceException("DART corpCode 요청 중단됨", e);
         }
     }
 

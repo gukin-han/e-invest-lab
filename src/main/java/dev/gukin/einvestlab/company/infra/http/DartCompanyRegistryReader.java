@@ -1,6 +1,7 @@
 package dev.gukin.einvestlab.company.infra.http;
 
 import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
 import dev.gukin.einvestlab.global.id.Ids;
 import org.springframework.stereotype.Component;
 
@@ -26,13 +27,13 @@ public class DartCompanyRegistryReader {
         try (ZipInputStream zipInput = new ZipInputStream(zipBody)) {
             ZipEntry entry = zipInput.getNextEntry();
             if (entry == null || !entry.getName().endsWith(".xml")) {
-                throw new DartClientException("corpCode zip 안에 .xml 항목이 없음: " + entry);
+                throw new CompanyRegistrySourceException("corpCode zip 안에 .xml 항목이 없음: " + entry);
             }
             parseCompanies(zipInput, handler);
         } catch (ZipException e) {
-            throw new DartClientException("corpCode 응답이 zip 이 아님 (DART 에러 본문 가능성)", e);
+            throw new CompanyRegistrySourceException("corpCode 응답이 zip 이 아님 (DART 에러 본문 가능성)", e);
         } catch (IOException | XMLStreamException e) {
-            throw new DartClientException("corpCode 스트림 파싱 실패", e);
+            throw new CompanyRegistrySourceException("corpCode 스트림 파싱 실패", e);
         }
     }
 
