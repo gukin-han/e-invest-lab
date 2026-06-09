@@ -24,15 +24,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 assertThat(company.getName()).isEqualTo("삼성전자");
 ```
 
-## 2. 테스트 클래스명은 동작 기반으로 작성한다
+## 2. 테스트 클래스명은 자원과 동작으로 작성하고 자원을 먼저 쓴다
 
 - 규칙
-  - 형식: `<Behavior><Kind>Test`
-  - `<Behavior>`: 검증하려는 동작·시나리오
+  - 형식: `<Resource><Action><Kind>Test`
+  - `<Resource>`: 검증 대상 자원·주체 (명사)
+  - `<Action>`: 검증하려는 동작·시나리오
   - `<Kind>`: `Unit`, `Integration`, `E2E`, `Smoke` 중 하나
+  - 자원을 먼저, 동작을 나중에 쓴다 (`CompanyRegistrySync`, `SyncCompanyRegistry`가 아님).
+  - 동작마다 클래스를 쪼개지 않는다. 세부 시나리오는 규칙 3의 `@Nested`로 묶는다.
 - 이유
-  - 클래스명·메서드명 기반 네이밍은 테스트를 코드 구조에 묶는다.
-  - 동작 기반 네이밍은 리팩토링 후에도 “무엇이 보장되어야 하는가”를 유지한다.
+  - 클래스 이름은 명사구이므로 자원이 앞서야 클래스답게 읽힌다.
+  - 자원이 먼저면 같은 도메인 테스트가 알파벳순으로 모여 탐색이 쉽다.
+  - 클래스는 자원(명사), 메서드는 동작(`shouldXxx`)으로 역할이 갈린다.
+  - 검증 대상에 이름을 묶으면 코드 구조가 바뀌어도 의미가 유지된다.
 
 | Kind | 의미 |
 |---|---|
@@ -46,7 +51,7 @@ Bad:
 class CompanyTest {
 }
 
-class CompanyUnitTest {
+class SyncCompanyRegistryUnitTest {
 }
 
 class BuildUnitTest {
