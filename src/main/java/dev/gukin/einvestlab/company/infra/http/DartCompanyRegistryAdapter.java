@@ -3,6 +3,7 @@ package dev.gukin.einvestlab.company.infra.http;
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
+import dev.gukin.einvestlab.global.config.DartApiProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

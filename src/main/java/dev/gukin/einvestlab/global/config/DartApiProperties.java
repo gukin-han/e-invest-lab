@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra.http;
+package dev.gukin.einvestlab.global.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
