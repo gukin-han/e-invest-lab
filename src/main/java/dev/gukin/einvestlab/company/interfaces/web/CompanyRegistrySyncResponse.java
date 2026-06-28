@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.interfaces;
+package dev.gukin.einvestlab.company.interfaces.web;
 
 import dev.gukin.einvestlab.company.application.CompanyRegistrySyncResult;
 

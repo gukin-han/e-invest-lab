@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.interfaces;
+package dev.gukin.einvestlab.company.interfaces.web;
 
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
-public class CompanyExceptionHandler {
+public class CompanyWebExceptionHandler {
 
     @ExceptionHandler(CompanyRegistrySourceException.class)
     ProblemDetail handleRegistrySource(CompanyRegistrySourceException e) {
