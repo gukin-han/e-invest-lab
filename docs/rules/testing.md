@@ -30,9 +30,10 @@ assertThat(company.getName()).isEqualTo("삼성전자");
   - 형식: `<Resource><Action><Kind>Test`
   - `<Resource>`: 검증 대상 자원·주체 (명사)
   - `<Action>`: 검증하려는 동작·시나리오
-  - `<Kind>`: `Unit`, `Integration`, `E2E`, `Smoke` 중 하나
+  - `<Kind>`: `Unit`, `Integration`, `E2E`, `Smoke`, `Arch` 중 하나
   - 자원을 먼저, 동작을 나중에 쓴다 (`CompanyRegistrySync`, `SyncCompanyRegistry`가 아님).
   - 동작마다 클래스를 쪼개지 않는다. 세부 시나리오는 규칙 3의 `@Nested`로 묶는다.
+  - 아키텍처 테스트는 예외다. 구조 규칙(의존 방향·네이밍 등)을 검증해 특정 자원·동작이 없으므로 `<구조 측면>Arch` 형식으로 쓴다 (예: `DependencyArchTest`). DisplayName도 붙이지 않는다(규칙 4).
 - 이유
   - 클래스 이름은 명사구이므로 자원이 앞서야 클래스답게 읽힌다.
   - 자원이 먼저면 같은 도메인 테스트가 알파벳순으로 모여 탐색이 쉽다.
@@ -45,6 +46,7 @@ assertThat(company.getName()).isEqualTo("삼성전자");
 | `Integration` | 통합 테스트. Testcontainers, 실제 DB·HTTP 사용 |
 | `E2E` | 종단간. 여러 도메인을 가로지르는 시나리오 |
 | `Smoke` | 외부 API 응답 형식 회귀. 네트워크 한정 사용 |
+| `Arch` | 아키텍처 적합성. 의존 방향·레이어·네이밍 등 구조 규칙 검증. Spring 컨텍스트 안 띄움 |
 
 Bad:
 ```java
@@ -124,6 +126,7 @@ class WithUnlistedCompany {
   - `@Nested` 이너 클래스: 시나리오·컨텍스트
   - `@Test` 메서드: 요구사항 한 줄
   - 코드명(`Company`, `CorpCode`)과 기술 용어(`null`, `entity`)는 가능한 자제한다.
+  - 단, 아키텍처 테스트(Kind `Arch`)는 예외다. 구조 규칙은 비즈니스 표현이 없어 DisplayName 없이 메서드명을 단일 출처로 쓴다.
 - 이유
   - 테스트 리포트는 개발자뿐 아니라 도메인 요구사항을 확인하는 문서 역할도 한다.
   - 비즈니스 표현은 구현 변경보다 오래 유지된다.

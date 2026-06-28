@@ -37,13 +37,12 @@ dev.gukin.einvestlab
 
 - 규칙
   - 기본 의존 방향: `interfaces -> application -> domain <- infra`
-  - `domain`은 다른 레이어에 의존하지 않는다.
-  - `application`은 `domain`에만 의존한다.
-  - `infra`와 `interfaces`는 `application`, `domain`에 의존할 수 있다.
-  - 엔티티는 도메인 모델로 사용하므로 `domain`의 JPA 어노테이션은 허용한다.
+  - 레이어 간 의존 방향과 도메인의 프레임워크 격리는 `DependencyArchTest`가 강제한다. 구체 규칙은 테스트를 본다.
+  - 엔티티는 도메인 모델로 사용하므로 `domain`의 JPA 어노테이션은 허용한다. (`jakarta.persistence`는 허용, `org.springframework`는 금지)
 - 이유
   - 도메인 규칙을 프레임워크와 외부 기술 변경으로부터 분리한다.
   - 의존 방향이 고정되면 순환 참조와 레이어 침범을 빠르게 발견할 수 있다.
+  - 정확한 강제는 테스트가, 근거와 예시는 이 문서가 맡는다.
 
 Bad:
 ```java
