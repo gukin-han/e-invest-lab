@@ -84,12 +84,7 @@ class CompanyRegistrySyncUnitTest {
                 .mapToObj(this::company)
                 .toList();
 
-        return new CompanyRegistrySource() {
-            @Override
-            public void streamAll(Consumer<Company> handler) {
-                companies.forEach(handler);
-            }
-        };
+        return companies::forEach;
     }
 
     private Company company(int index) {
