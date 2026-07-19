@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra.http;
+package dev.gukin.einvestlab.company.infra.dart;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
@@ -17,11 +17,11 @@ import java.util.function.Consumer;
 
 @Component
 @RequiredArgsConstructor
-public class DartCompanyRegistryAdapter implements CompanyRegistrySource {
+public class CompanyRegistryAdapter implements CompanyRegistrySource {
 
     private final HttpClient httpClient;
     private final DartApiProperties properties;
-    private final DartCompanyRegistryReader reader;
+    private final CompanyRegistryReader reader;
 
     @Override
     public void streamAll(Consumer<Company> handler) {

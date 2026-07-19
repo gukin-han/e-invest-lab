@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra.http;
+package dev.gukin.einvestlab.company.infra.dart;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import org.junit.jupiter.api.DisplayName;
@@ -18,9 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 @DisplayName("DART 회사 등록부 파싱 단위 테스트")
-class DartCompanyRegistryReadUnitTest {
+class CompanyRegistryReadUnitTest {
 
-    private final DartCompanyRegistryReader reader = new DartCompanyRegistryReader();
+    private final CompanyRegistryReader reader = new CompanyRegistryReader();
 
     @Test
     @DisplayName("DART 에서 받은 등록부 필드를 회사로 변환해 순서대로 전달한다")

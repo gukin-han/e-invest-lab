@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra.http;
+package dev.gukin.einvestlab.company.infra.dart;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
@@ -19,7 +19,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
 @Component
-public class DartCompanyRegistryReader {
+public class CompanyRegistryReader {
 
     private static final DateTimeFormatter DART_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 

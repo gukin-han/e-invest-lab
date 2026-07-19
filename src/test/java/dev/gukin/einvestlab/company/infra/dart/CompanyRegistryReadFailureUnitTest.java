@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra.http;
+package dev.gukin.einvestlab.company.infra.dart;
 
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
 import org.junit.jupiter.api.DisplayName;
@@ -14,9 +14,9 @@ import java.util.zip.ZipOutputStream;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("DART 회사 등록부 응답 형식 오류 단위 테스트")
-class DartCompanyRegistryReadFailureUnitTest {
+class CompanyRegistryReadFailureUnitTest {
 
-    private final DartCompanyRegistryReader reader = new DartCompanyRegistryReader();
+    private final CompanyRegistryReader reader = new CompanyRegistryReader();
 
     @Test
     @DisplayName("zip 이 아닌 응답은 등록부로 읽을 수 없다")

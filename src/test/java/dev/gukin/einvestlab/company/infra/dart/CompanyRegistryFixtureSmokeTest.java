@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infra.http;
+package dev.gukin.einvestlab.company.infra.dart;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import org.junit.jupiter.api.DisplayName;
@@ -11,9 +11,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("DART 회사 등록부 실제 응답 회귀 스모크 테스트")
-class DartCompanyRegistryFixtureSmokeTest {
+class CompanyRegistryFixtureSmokeTest {
 
-    private final DartCompanyRegistryReader reader = new DartCompanyRegistryReader();
+    private final CompanyRegistryReader reader = new CompanyRegistryReader();
 
     @Test
     @DisplayName("실제 등록부 zip 응답을 끝까지 읽고 알려진 상장 회사를 찾는다")
