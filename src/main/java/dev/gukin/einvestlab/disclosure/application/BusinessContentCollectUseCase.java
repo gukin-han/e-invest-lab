@@ -4,12 +4,14 @@ import dev.gukin.einvestlab.disclosure.domain.BusinessContent;
 import dev.gukin.einvestlab.disclosure.domain.BusinessContentRepository;
 import dev.gukin.einvestlab.disclosure.domain.BusinessReportFiling;
 import dev.gukin.einvestlab.disclosure.domain.BusinessReportSource;
+import dev.gukin.einvestlab.disclosure.domain.DisclosureDocumentMissingException;
+import dev.gukin.einvestlab.disclosure.domain.DisclosureSourceException;
 import dev.gukin.einvestlab.global.id.Ids;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,15 +21,25 @@ public class BusinessContentCollectUseCase {
     private final BusinessContentRepository businessContentRepository;
 
     public BusinessContentCollectResult collect(String corpCode, Instant baseTime) {
-        Optional<BusinessReportFiling> latest = businessReportSource.findLatest(corpCode, baseTime);
-        if (latest.isEmpty()) {
+        List<BusinessReportFiling> filings = businessReportSource.findRecent(corpCode, baseTime);
+        if (filings.isEmpty()) {
             return BusinessContentCollectResult.NO_REPORT;
         }
-        BusinessReportFiling filing = latest.get();
-        if (businessContentRepository.existsByFilingNumber(filing.filingNumber())) {
-            return BusinessContentCollectResult.ALREADY_COLLECTED;
+        for (BusinessReportFiling filing : filings) {
+            if (businessContentRepository.existsByFilingNumber(filing.filingNumber())) {
+                return BusinessContentCollectResult.ALREADY_COLLECTED;
+            }
+            try {
+                save(filing, businessReportSource.fetchBusinessContent(filing), baseTime);
+                return BusinessContentCollectResult.COLLECTED;
+            } catch (DisclosureDocumentMissingException e) {
+                continue;
+            }
         }
-        String content = businessReportSource.fetchBusinessContent(filing);
+        throw new DisclosureSourceException("다운로드 가능한 사업보고서 원문 없음: " + corpCode);
+    }
+
+    private void save(BusinessReportFiling filing, String content, Instant baseTime) {
         businessContentRepository.save(BusinessContent.builder()
                 .id(Ids.generate())
                 .corpCode(filing.corpCode())
@@ -36,6 +48,5 @@ public class BusinessContentCollectUseCase {
                 .content(content)
                 .collectedAt(baseTime)
                 .build());
-        return BusinessContentCollectResult.COLLECTED;
     }
 }

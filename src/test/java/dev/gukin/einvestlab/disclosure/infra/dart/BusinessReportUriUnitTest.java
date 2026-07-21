@@ -30,7 +30,6 @@ class BusinessReportUriUnitTest {
                         + "?crtfc_key=test-key"
                         + "&corp_code=00126380"
                         + "&pblntf_detail_ty=A001"
-                        + "&last_reprt_at=Y"
                         + "&bgn_de=20240719"
                         + "&end_de=20260719"
                         + "&page_count=100");

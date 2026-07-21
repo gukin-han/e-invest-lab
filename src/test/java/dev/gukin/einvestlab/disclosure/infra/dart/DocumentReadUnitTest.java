@@ -1,5 +1,6 @@
 package dev.gukin.einvestlab.disclosure.infra.dart;
 
+import dev.gukin.einvestlab.disclosure.domain.DisclosureDocumentMissingException;
 import dev.gukin.einvestlab.disclosure.domain.DisclosureSourceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,33 @@ class DocumentReadUnitTest {
         String body = reader.readBody("20260310002820", zipBody);
 
         assertThat(body).isEqualTo("<document>II. 사업의 내용</document>");
+    }
+
+    @Test
+    @DisplayName("zip 대신 파일 없음(status 014) XML 이 오면 문서 없음 예외를 던진다")
+    void shouldThrowDocumentMissingOnStatus014() {
+        String errorBody = """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?><result><status>014</status><message>파일이 존재하지 않습니다.</message></result>
+                """;
+
+        assertThatThrownBy(() -> reader.readBody("20260619000667",
+                new ByteArrayInputStream(errorBody.getBytes(StandardCharsets.UTF_8))))
+                .isInstanceOf(DisclosureDocumentMissingException.class)
+                .hasMessageContaining("20260619000667");
+    }
+
+    @Test
+    @DisplayName("zip 도 파일 없음도 아닌 응답은 일반 원천 예외를 던진다")
+    void shouldThrowOnUnexpectedNonZipBody() {
+        String errorBody = """
+                <?xml version="1.0"?><result><status>020</status><message>요청 제한</message></result>
+                """;
+
+        assertThatThrownBy(() -> reader.readBody("20260310002820",
+                new ByteArrayInputStream(errorBody.getBytes(StandardCharsets.UTF_8))))
+                .isInstanceOf(DisclosureSourceException.class)
+                .isNotInstanceOf(DisclosureDocumentMissingException.class)
+                .hasMessageContaining("zip 이 아님");
     }
 
     @Test

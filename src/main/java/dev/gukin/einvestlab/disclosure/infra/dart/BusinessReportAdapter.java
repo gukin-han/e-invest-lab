@@ -20,7 +20,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -38,9 +38,9 @@ public class BusinessReportAdapter implements BusinessReportSource {
     private final BusinessContentExtractor businessContentExtractor;
 
     @Override
-    public Optional<BusinessReportFiling> findLatest(String corpCode, Instant baseTime) {
+    public List<BusinessReportFiling> findRecent(String corpCode, Instant baseTime) {
         try (InputStream body = fetch(buildListUri(corpCode, baseTime), "DART 공시검색")) {
-            return parse(body).toFiling(corpCode);
+            return parse(body).toFilings(corpCode);
         } catch (IOException e) {
             throw new DisclosureSourceException("DART 공시검색 응답 스트림 읽기 실패", e);
         }
@@ -90,7 +90,6 @@ public class BusinessReportAdapter implements BusinessReportSource {
                 + "?crtfc_key=" + properties.key()
                 + "&corp_code=" + corpCode
                 + "&pblntf_detail_ty=" + ANNUAL_REPORT_TYPE
-                + "&last_reprt_at=Y"
                 + "&bgn_de=" + DART_DATE.format(beginDate)
                 + "&end_de=" + DART_DATE.format(endDate)
                 + "&page_count=100");
