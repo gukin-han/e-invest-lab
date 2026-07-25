@@ -7,7 +7,7 @@
 ## 1. 벤더는 패키지가 말한다
 
 - 규칙
-  - 외부 시스템 연동 코드는 벤더명 패키지에 둔다: `infra.dart`. 전송 방식(`http`)이 아니라 벤더가 패키지 이름이다.
+  - 외부 시스템 연동 코드는 벤더명 패키지에 둔다: `infrastructure.dart`. 전송 방식(`http`)이 아니라 벤더가 패키지 이름이다.
   - 그 패키지 안의 클래스 이름에는 벤더 접두사를 붙이지 않는다.
   - 벤더 스코프 패키지가 없는 곳(`global.config`)에서는 클래스 이름이 벤더를 말한다: `DartApiProperties`.
   - 도메인 객체에는 벤더명을 어떤 형태로도 넣지 않는다.
@@ -16,8 +16,8 @@
   - 벤더 정보가 사라지면 안 되므로 "접두사 제거"가 아니라 "패키지로 이동"이다. 스택트레이스·import에는 전체 경로가 찍혀 정보 손실이 없다.
   - 두 번째 벤더가 생기면 `infra.krx` 가 옆에 나란히 선다.
 - 예시
-  - `disclosure.infra.dart.BusinessReportAdapter` (벤더는 경로가, 역할은 이름이)
-  - `company.infra.dart.CompanyRegistryReader`
+  - `disclosure.infrastructure.dart.BusinessReportAdapter` (벤더는 경로가, 역할은 이름이)
+  - `company.infrastructure.dart.CompanyRegistryReader`
 
 ## 2. 포트 구현체 = {포트 대상}Adapter
 

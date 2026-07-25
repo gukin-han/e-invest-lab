@@ -21,7 +21,7 @@ class DependencyArchTest {
                 .consideringOnlyDependenciesInLayers()
                 .layer("Domain").definedBy("..domain..")
                 .layer("Application").definedBy("..application..")
-                .layer("Infra").definedBy("..infra..")
+                .layer("Infra").definedBy("..infrastructure..")
                 .layer("Interfaces").definedBy("..interfaces..")
                 .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Infra", "Interfaces")
                 .whereLayer("Application").mayOnlyBeAccessedByLayers("Infra", "Interfaces")

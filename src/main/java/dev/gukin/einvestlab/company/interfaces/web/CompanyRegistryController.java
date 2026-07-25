@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.company.interfaces.web;
 
 import dev.gukin.einvestlab.company.application.CompanyRegistrySyncResult;
 import dev.gukin.einvestlab.company.application.CompanyRegistrySyncUseCase;
+import dev.gukin.einvestlab.company.interfaces.web.dto.CompanyRegistrySyncResponse;
 import dev.gukin.einvestlab.global.web.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -32,7 +32,7 @@ class LayerPlacementArchTest {
     void shouldPlaceRepositoriesInInfraDbLayer() {
         ArchRule rule = classes()
                 .that().areAnnotatedWith(Repository.class)
-                .should().resideInAPackage("..infra.db..")
+                .should().resideInAPackage("..infrastructure.db..")
                 .allowEmptyShould(false);
 
         rule.check(CLASSES);

@@ -64,7 +64,7 @@ class CompanyRegistrySourceException extends RuntimeException {
 Bad:
 ```java
 // 예외가 infra 에 있어 interfaces 가 infra 를 import (의존 방향 위반)
-package ...company.infra.http;
+package ...company.infrastructure.dart;
 class CompanyRegistrySourceException extends RuntimeException {}
 ```
 
