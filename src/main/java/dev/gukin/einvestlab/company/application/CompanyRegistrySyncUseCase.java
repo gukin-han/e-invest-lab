@@ -2,39 +2,46 @@ package dev.gukin.einvestlab.company.application;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
-import lombok.RequiredArgsConstructor;
+import dev.gukin.einvestlab.company.domain.CompanyRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class CompanyRegistrySyncUseCase {
 
     private static final int BATCH_SIZE = 1_000;
 
     private final CompanyRegistrySource source;
-    private final CompanyRegistryBatchWriter writer;
+    private final CompanyRepository repository;
+    private final TransactionTemplate batchTransaction;
+
+    public CompanyRegistrySyncUseCase(CompanyRegistrySource source,
+                                      CompanyRepository repository,
+                                      PlatformTransactionManager transactionManager) {
+        this.source = source;
+        this.repository = repository;
+        this.batchTransaction = new TransactionTemplate(transactionManager);
+        this.batchTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     public CompanyRegistrySyncResult syncAll() {
-        SyncAccumulator accumulator = new SyncAccumulator(writer);
+        SyncAccumulator accumulator = new SyncAccumulator();
 
         source.streamAll(accumulator::accept);
         accumulator.finish();
 
-        return new CompanyRegistrySyncResult(accumulator.upsertedCount());
+        return new CompanyRegistrySyncResult(accumulator.upsertedCount);
     }
 
-    private static class SyncAccumulator {
+    private class SyncAccumulator {
 
-        private final CompanyRegistryBatchWriter writer;
         private final List<Company> buffer = new ArrayList<>(BATCH_SIZE);
         private int upsertedCount;
-
-        private SyncAccumulator(CompanyRegistryBatchWriter writer) {
-            this.writer = writer;
-        }
 
         private void accept(Company company) {
             buffer.add(company);
@@ -49,12 +56,9 @@ public class CompanyRegistrySyncUseCase {
             }
         }
 
-        private int upsertedCount() {
-            return upsertedCount;
-        }
-
         private void flush() {
-            upsertedCount += writer.upsert(List.copyOf(buffer));
+            List<Company> batch = List.copyOf(buffer);
+            upsertedCount += batchTransaction.execute(status -> repository.upsertCompanies(batch));
             buffer.clear();
         }
     }
