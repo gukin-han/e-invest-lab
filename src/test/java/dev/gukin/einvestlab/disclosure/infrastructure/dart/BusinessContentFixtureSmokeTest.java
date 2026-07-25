@@ -41,6 +41,20 @@ class BusinessContentFixtureSmokeTest {
                 .doesNotContain("재무에 관한 사항");
     }
 
+    @Test
+    @DisplayName("실물 슬라이스에서 추출 → 슬라이스 연쇄가 태그 없는 선별 텍스트를 만든다")
+    void shouldChainExtractAndSliceOnRealFixture() {
+        BusinessContentSlicer slicer = new BusinessContentSlicer();
+
+        String sliced = slicer.slice(extractor.extract(fixture("samsung-boundary.xml")));
+
+        assertThat(sliced)
+                .contains("1. 사업의 개요")
+                .contains("글로벌 전자 기업")
+                .doesNotContain("<TITLE")
+                .doesNotContain("<SECTION");
+    }
+
     private String fixture(String name) {
         try (InputStream input = getClass().getResourceAsStream("/fixtures/disclosure/" + name)) {
             assertThat(input).isNotNull();
