@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 
 @Component
 @RequiredArgsConstructor
-public class CompanyRegistryAdapter implements CompanyRegistrySource {
+public class CompanyRegistrySourceAdapter implements CompanyRegistrySource {
 
     private final HttpClient httpClient;
     private final DartApiProperties properties;

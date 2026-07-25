@@ -24,7 +24,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class BusinessReportAdapter implements BusinessReportSource {
+public class BusinessReportSourceAdapter implements BusinessReportSource {
 
     private static final String ANNUAL_REPORT_TYPE = "A001";
     private static final Period SEARCH_RANGE = Period.ofYears(2);

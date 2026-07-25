@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("DART 요청 URI 조립 단위 테스트")
 class BusinessReportUriUnitTest {
 
-    private final BusinessReportAdapter adapter = new BusinessReportAdapter(
+    private final BusinessReportSourceAdapter adapter = new BusinessReportSourceAdapter(
             null,
             new DartApiProperties("https://opendart.fss.or.kr/api", "test-key"),
             null,

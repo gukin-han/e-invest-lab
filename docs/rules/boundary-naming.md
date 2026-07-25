@@ -20,13 +20,13 @@
   - 채널명(`http`, `opendart`)은 채널이 바뀌면 죽지만 상대명(`dart`)은 살아남는다.
   - 두 번째 상대·책임이 생기면 옆에 나란히 선다: `infrastructure.krx`, `infrastructure.messaging`.
 - 예시
-  - `disclosure.infrastructure.dart.BusinessReportAdapter` (대상은 경로가, 역할은 이름이)
+  - `disclosure.infrastructure.dart.BusinessReportSourceAdapter` (대상은 경로가, 역할은 이름이)
   - `disclosure.infrastructure.persistence.BusinessContentRepositoryAdapter` (책임은 경로가, 기술은 클래스가)
 
 ## 2. 포트 구현체 = {포트 대상}Adapter
 
 - 규칙
-  - 도메인 포트의 경계 구현체는 `{포트 대상}Adapter`: `BusinessReportAdapter` (implements `BusinessReportSource`), `CompanyRepositoryAdapter` (implements `CompanyRepository`).
+  - 도메인 포트의 경계 구현체는 **`{포트명}Adapter`** — 포트 이름 전체에 기계적으로 Adapter 를 붙인다: `BusinessReportSourceAdapter` (implements `BusinessReportSource`), `CompanyRepositoryAdapter` (implements `CompanyRepository`). 접미사 일부(Source 등)를 떨구지 않는다 — 규칙이 둘로 갈라지고, 이름만으로 어떤 계약의 구현인지 읽을 수 없게 된다.
 - 이유
   - Adapter는 포트-어댑터 아키텍처의 용어로, "도메인이 정한 계약과 외부 기술 사이의 변환기"라는 뜻이다. 이 룰 문서로 어휘를 고정했으므로 팀 안에서 정보를 전달하는 이름이다.
   - `~Impl` 은 무엇으로 구현했는지 말하지 않고, 두 번째 구현이 생기는 순간 파탄 난다. `~Client` 는 전송 메커니즘만 말하고 어떤 계약을 이행하는지 말하지 않는다.

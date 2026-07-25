@@ -46,8 +46,8 @@ company
 │   └── dto
 │       ├── CompanyResponse.java
 │       └── CompanySyncRequest.java
-└── infra
-    └── http
+└── infrastructure
+    └── dart
         └── dto
             └── DartCompanyProfileResponse.java
 ```
@@ -59,9 +59,9 @@ company
 │   ├── CompanyController.java
 │   ├── CompanyResponse.java
 │   └── CompanyRegistrySyncRequest.java
-└── infra
-    └── http
-        ├── DartCompanyRegistryAdapter.java
+└── infrastructure
+    └── dart
+        ├── CompanyRegistrySourceAdapter.java
         └── DartCompanyProfileResponse.java
 ```
 

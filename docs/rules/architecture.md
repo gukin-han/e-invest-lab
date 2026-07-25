@@ -245,7 +245,7 @@ Good:
 interface CompanyRegistrySource {
 }
 
-class DartCompanyRegistryAdapter {
+class CompanyRegistrySourceAdapter {
 }
 ```
 
