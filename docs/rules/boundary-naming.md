@@ -4,20 +4,24 @@
 
 - 원칙: **소속·위치 정보는 패키지가, 역할 정보는 클래스 이름이 담당한다.** 같은 정보를 두 자리에 새기지 않는다.
 
-## 1. 벤더는 패키지가 말한다
+## 1. infrastructure 하위 패키지 = 연동 대상 또는 책임
 
 - 규칙
-  - 외부 시스템 연동 코드는 벤더명 패키지에 둔다: `infrastructure.dart`. 전송 방식(`http`)이 아니라 벤더가 패키지 이름이다.
-  - 그 패키지 안의 클래스 이름에는 벤더 접두사를 붙이지 않는다.
-  - 벤더 스코프 패키지가 없는 곳(`global.config`)에서는 클래스 이름이 벤더를 말한다: `DartApiProperties`.
+  - **상대가 고유명이면 대상명**: `infrastructure.dart` (DART 전자공시). 전송 방식(`http`)·접근 채널(`opendart`)이 아니라 상대 세계의 이름이다.
+  - **상대가 고유명이 아니면 책임명**: `infrastructure.persistence` (저장). 나중에 생기면 `messaging`(발행), `cache`, `lock` 도 같은 축.
+  - 고유명 패키지는 그 안의 지식이 실제로 그 상대 고유일 때만 쓴다. 저장소를 `mysql` 로 이름 짓지 않는 이유 — JPA 코드는 엔진 중립이라 패키지 전체가 MySQL 지식이라는 주장이 과대다.
+  - 기술 이름은 클래스명에서 구분한다: `CompanyJpaRepository`, `CompanyJdbcRepository`. 같은 책임 아래 기술이 둘 이상일 때만 구분하고, 하나뿐이면 기술 단계 패키지를 만들지 않는다.
+  - 대상명 패키지 안의 클래스에는 벤더 접두사를 붙이지 않는다. 벤더 스코프 패키지가 없는 곳(`global.config`)에서는 클래스 이름이 벤더를 말한다: `DartApiProperties`.
   - 도메인 객체에는 벤더명을 어떤 형태로도 넣지 않는다.
+  - **엔티티는 domain 에 남는다.** JPA 엔티티가 곧 도메인 모델이므로(영속 모델 분리 안 함) `persistence` 에는 저장 구현(Repository 구현·쿼리)만 들어간다.
 - 이유
-  - 벤더는 역할이 아니라 소속이다. 소속을 클래스 이름에 새기면 패키지와 이중 기록이 되고, 이름은 길어지는데 역할 정보는 늘지 않는다.
-  - 벤더 정보가 사라지면 안 되므로 "접두사 제거"가 아니라 "패키지로 이동"이다. 스택트레이스·import에는 전체 경로가 찍혀 정보 손실이 없다.
-  - 두 번째 벤더가 생기면 `infra.krx` 가 옆에 나란히 선다.
+  - 패키지가 답할 질문은 "어떤 기술을 쓰는가"가 아니라 "무엇과 연결되는가 / 어떤 외부 책임을 수행하는가"다.
+  - 벤더는 역할이 아니라 소속이다. 소속을 클래스 이름에 새기면 패키지와 이중 기록이 된다. 반대로 책임명 패키지에서는 기술 구분이 클래스명의 몫이 된다.
+  - 채널명(`http`, `opendart`)은 채널이 바뀌면 죽지만 상대명(`dart`)은 살아남는다.
+  - 두 번째 상대·책임이 생기면 옆에 나란히 선다: `infrastructure.krx`, `infrastructure.messaging`.
 - 예시
-  - `disclosure.infrastructure.dart.BusinessReportAdapter` (벤더는 경로가, 역할은 이름이)
-  - `company.infrastructure.dart.CompanyRegistryReader`
+  - `disclosure.infrastructure.dart.BusinessReportAdapter` (대상은 경로가, 역할은 이름이)
+  - `disclosure.infrastructure.persistence.BusinessContentRepositoryAdapter` (책임은 경로가, 기술은 클래스가)
 
 ## 2. 포트 구현체 = {포트 대상}Adapter
 
