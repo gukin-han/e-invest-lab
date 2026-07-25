@@ -29,10 +29,10 @@ class LayerPlacementArchTest {
     }
 
     @Test
-    void shouldPlaceRepositoriesInInfraDbLayer() {
+    void shouldPlaceRepositoriesInPersistenceLayer() {
         ArchRule rule = classes()
                 .that().areAnnotatedWith(Repository.class)
-                .should().resideInAPackage("..infrastructure.db..")
+                .should().resideInAPackage("..infrastructure.persistence..")
                 .allowEmptyShould(false);
 
         rule.check(CLASSES);

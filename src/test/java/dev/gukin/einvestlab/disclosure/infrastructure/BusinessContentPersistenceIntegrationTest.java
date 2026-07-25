@@ -1,7 +1,7 @@
 package dev.gukin.einvestlab.disclosure.infrastructure;
 
 import dev.gukin.einvestlab.disclosure.domain.BusinessContent;
-import dev.gukin.einvestlab.disclosure.infrastructure.db.BusinessContentJpaRepository;
+import dev.gukin.einvestlab.disclosure.infrastructure.persistence.BusinessContentJpaRepository;
 import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;

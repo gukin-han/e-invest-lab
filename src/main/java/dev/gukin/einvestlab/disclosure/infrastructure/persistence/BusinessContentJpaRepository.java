@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.disclosure.infrastructure.db;
+package dev.gukin.einvestlab.disclosure.infrastructure.persistence;
 
 import dev.gukin.einvestlab.disclosure.domain.BusinessContent;
 import org.springframework.data.jpa.repository.JpaRepository;

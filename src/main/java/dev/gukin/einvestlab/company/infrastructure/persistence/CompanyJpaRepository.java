@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.company.infrastructure.db;
+package dev.gukin.einvestlab.company.infrastructure.persistence;
 
 import dev.gukin.einvestlab.company.domain.Company;
 import org.springframework.data.jpa.repository.JpaRepository;
