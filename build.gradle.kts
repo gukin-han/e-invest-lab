@@ -31,6 +31,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-flyway")
     implementation("org.flywaydb:flyway-mysql")
     implementation("com.github.f4b6a3:uuid-creator:6.0.0")
+    implementation("org.jsoup:jsoup:1.18.3")
     compileOnly("org.projectlombok:lombok")
     runtimeOnly("com.mysql:mysql-connector-j")
     annotationProcessor("org.projectlombok:lombok")

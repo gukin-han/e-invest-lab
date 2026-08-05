@@ -1,0 +1,90 @@
+package dev.gukin.einvestlab.research.infrastructure;
+
+import dev.gukin.einvestlab.global.id.Ids;
+import dev.gukin.einvestlab.research.domain.AnalystReport;
+import dev.gukin.einvestlab.research.infrastructure.persistence.AnalystReportJpaRepository;
+import dev.gukin.einvestlab.support.AbstractIntegrationTest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@DisplayName("애널리스트 리포트 영속화 통합 테스트")
+class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
+
+    @Autowired
+    private AnalystReportJpaRepository repository;
+
+    @AfterEach
+    void tearDown() {
+        repository.deleteAllInBatch();
+    }
+
+    @Nested
+    @DisplayName("리포트를 저장하고 다시 읽을 때")
+    class WhenSavingAndReading {
+
+        @Test
+        @DisplayName("목록 메타와 수집 시각이 그대로 보존된다")
+        void shouldRoundTripReport() {
+            UUID id = Ids.generate();
+            Instant collectedAt = Instant.parse("2026-08-05T03:00:00Z");
+
+            repository.save(AnalystReport.builder()
+                    .id(id)
+                    .reportIdx(651490L)
+                    .stockCode("016360")
+                    .companyName("삼성증권")
+                    .title("삼성증권(016360) 최대실적 지속 경신")
+                    .broker("LS증권")
+                    .authors("전배승")
+                    .publishedDate(LocalDate.of(2026, 8, 5))
+                    .targetPrice(115_000L)
+                    .opinion("Hold")
+                    .collectedAt(collectedAt)
+                    .build());
+
+            AnalystReport found = repository.findById(id).orElseThrow();
+            assertThat(found.getReportIdx()).isEqualTo(651490L);
+            assertThat(found.getTargetPrice()).isEqualTo(115_000L);
+            assertThat(found.getCollectedAt()).isEqualTo(collectedAt);
+            assertThat(repository.existsByReportIdx(651490L)).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("같은 리포트 식별자로 두 번 저장할 때")
+    class WhenSavingDuplicateReportIdx {
+
+        @Test
+        @DisplayName("두 번째 저장은 중복으로 거부된다")
+        void shouldRejectDuplicateReportIdx() {
+            saveSample(651490L);
+
+            assertThatThrownBy(() -> saveSample(651490L))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+
+        private void saveSample(long reportIdx) {
+            repository.saveAndFlush(AnalystReport.builder()
+                    .id(Ids.generate())
+                    .reportIdx(reportIdx)
+                    .stockCode("016360")
+                    .companyName("삼성증권")
+                    .title("삼성증권(016360) 최대실적 지속 경신")
+                    .broker("LS증권")
+                    .publishedDate(LocalDate.of(2026, 8, 5))
+                    .collectedAt(Instant.parse("2026-08-05T03:00:00Z"))
+                    .build());
+        }
+    }
+}

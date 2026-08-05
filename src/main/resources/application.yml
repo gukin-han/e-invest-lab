@@ -31,3 +31,7 @@ dart:
   api:
     base-url: https://opendart.fss.or.kr/api
     key: ${DART_API_KEY:}
+
+hankyung:
+  api:
+    base-url: https://consensus.hankyung.com

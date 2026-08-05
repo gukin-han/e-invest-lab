@@ -1,12 +1,8 @@
 package dev.gukin.einvestlab.disclosure.infrastructure.dart;
 
+import dev.gukin.einvestlab.support.Fixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,11 +52,6 @@ class BusinessContentFixtureSmokeTest {
     }
 
     private String fixture(String name) {
-        try (InputStream input = getClass().getResourceAsStream("/fixtures/disclosure/" + name)) {
-            assertThat(input).isNotNull();
-            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return Fixtures.read("/fixtures/disclosure/" + name);
     }
 }
