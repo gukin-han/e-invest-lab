@@ -29,40 +29,43 @@
   - "우리가 노출하는 모양", "외부가 주는 모양", "유스케이스가 주고받는 모양"은 서로 다른 변경 이유를 가진다.
   - 출처가 이름에 드러나면 어떤 변경이 어느 DTO를 흔드는지 바로 보인다.
 
-## 3. DTO도 평탄하게 두고 `dto` 하위 폴더를 만들지 않는다
+## 3. 웹 DTO는 `web/dto` 하위에, 나머지 DTO는 평탄하게 둔다
 
 - 규칙
-  - Request/Response/Command/Result는 그것을 쓰는 계층 패키지에 평탄하게 둔다.
-  - `dto`, `model`, `api`, `payload` 같은 하위 폴더를 만들지 않는다.
-  - `interfaces`, `infra/http`, `application` 바로 아래에 둔다.
+  - interfaces 의 Request/Response 는 `interfaces/web/dto` 에 모은다. 컨트롤러는 `interfaces/web` 바로 아래.
+  - infra 의 와이어 DTO(외부 응답 바인딩)는 벤더 패키지에 평탄하게 둔다 — `dto` 하위를 만들지 않는다.
+  - application 의 Result/Command 는 application 바로 아래 평탄하게 둔다.
 - 이유
-  - 작은 도메인에서 DTO 전용 폴더는 탐색 비용만 늘린다(`아키텍처 규칙 4`와 동일 근거).
-  - 같은 계층에서 쓰는 클래스끼리 한 곳에 모인다.
+  - 엔드포인트가 늘면 DTO 수가 컨트롤러 수보다 빨리 늘어, 평탄 구조에서는 엔드포인트 지도(컨트롤러 목록)가 DTO에 묻힌다. `web/dto` 분리가 그 지도를 지킨다.
+  - 반대로 infra 벤더 패키지는 파일 수가 적고 응답 record 가 어댑터·리더의 부품이라, 분리하면 탐색 비용만 늘어난다.
 
 Bad:
 ```text
 company
 ├── interfaces
-│   └── dto
-│       ├── CompanyResponse.java
-│       └── CompanySyncRequest.java
+│   └── web
+│       ├── CompanyController.java
+│       ├── CompanyResponse.java          ← 컨트롤러가 DTO에 묻힘
+│       └── CompanyRegistrySyncRequest.java
 └── infrastructure
     └── dart
         └── dto
-            └── DartCompanyProfileResponse.java
+            └── CompanyProfileResponse.java   ← 부품을 어댑터에서 떼어놓음
 ```
 
 Good:
 ```text
 company
 ├── interfaces
-│   ├── CompanyController.java
-│   ├── CompanyResponse.java
-│   └── CompanyRegistrySyncRequest.java
+│   └── web
+│       ├── CompanyController.java
+│       └── dto
+│           ├── CompanyResponse.java
+│           └── CompanyRegistrySyncRequest.java
 └── infrastructure
     └── dart
         ├── CompanyRegistrySourceAdapter.java
-        └── DartCompanyProfileResponse.java
+        └── CompanyProfileResponse.java
 ```
 
 ## 4. 우리 API의 입출력은 interfaces에 Request / Response로 둔다

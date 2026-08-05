@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.disclosure.interfaces.web;
 
 import dev.gukin.einvestlab.disclosure.application.BusinessContentCollectResult;
 import dev.gukin.einvestlab.disclosure.application.BusinessContentCollectUseCase;
+import dev.gukin.einvestlab.disclosure.interfaces.web.dto.BusinessContentCollectResponse;
 import dev.gukin.einvestlab.global.web.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PathVariable;

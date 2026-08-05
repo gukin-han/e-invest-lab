@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.disclosure.interfaces.web;
+package dev.gukin.einvestlab.disclosure.interfaces.web.dto;
 
 import dev.gukin.einvestlab.disclosure.application.BusinessContentCollectResult;
 
