@@ -1,9 +1,9 @@
 package dev.gukin.einvestlab.company.application;
 
 import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
 import dev.gukin.einvestlab.company.domain.CompanyRepository;
-import dev.gukin.einvestlab.global.id.Ids;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("회사를 1000개 단위로 각각 새 트랜잭션에서 저장한다")
         void shouldWriteCompaniesInBatches() {
-            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(2_500);
+            CompanyRegistrySyncUseCase useCase = useCaseWithEntries(2_500);
 
             CompanyRegistrySyncResult result = useCase.syncAll();
 
@@ -47,9 +47,22 @@ class CompanyRegistrySyncUnitTest {
         }
 
         @Test
+        @DisplayName("등록부 항목을 저장할 회사로 만들 때 식별자를 발급한다")
+        void shouldAssignIdWhenMappingEntryToCompany() {
+            CompanyRegistrySyncUseCase useCase = useCaseWithEntries(3);
+
+            useCase.syncAll();
+
+            assertThat(repository.batches)
+                    .flatExtracting(batch -> batch)
+                    .extracting(Company::getId)
+                    .doesNotContainNull();
+        }
+
+        @Test
         @DisplayName("등록부가 비어 있으면 저장도 트랜잭션도 없다")
         void shouldSkipWritingWithEmptyRegistry() {
-            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(0);
+            CompanyRegistrySyncUseCase useCase = useCaseWithEntries(0);
 
             CompanyRegistrySyncResult result = useCase.syncAll();
 
@@ -61,7 +74,7 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("정확히 1000개면 한 번만 저장한다")
         void shouldWriteOnceWithFullBatch() {
-            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(1_000);
+            CompanyRegistrySyncUseCase useCase = useCaseWithEntries(1_000);
 
             CompanyRegistrySyncResult result = useCase.syncAll();
 
@@ -74,7 +87,7 @@ class CompanyRegistrySyncUnitTest {
         @Test
         @DisplayName("저장할 때 원본 버퍼를 외부에 노출하지 않는다")
         void shouldNotExposeMutableBufferWhenWritingBatch() {
-            CompanyRegistrySyncUseCase useCase = useCaseWithCompanies(1_001);
+            CompanyRegistrySyncUseCase useCase = useCaseWithEntries(1_001);
 
             useCase.syncAll();
 
@@ -85,25 +98,25 @@ class CompanyRegistrySyncUnitTest {
         }
     }
 
-    private CompanyRegistrySyncUseCase useCaseWithCompanies(int count) {
-        return new CompanyRegistrySyncUseCase(sourceWithCompanies(count), repository, transactionManager);
+    private CompanyRegistrySyncUseCase useCaseWithEntries(int count) {
+        return new CompanyRegistrySyncUseCase(sourceWithEntries(count), repository, transactionManager);
     }
 
-    private CompanyRegistrySource sourceWithCompanies(int count) {
-        List<Company> companies = IntStream.range(0, count)
-                .mapToObj(this::company)
+    private CompanyRegistrySource sourceWithEntries(int count) {
+        List<CompanyRegistryEntry> entries = IntStream.range(0, count)
+                .mapToObj(this::entry)
                 .toList();
 
-        return companies::forEach;
+        return entries::forEach;
     }
 
-    private Company company(int index) {
-        return Company.builder()
-                .id(Ids.generate())
-                .corpCode("%08d".formatted(index))
-                .name("회사%s".formatted(index))
-                .registryModifiedDate(LocalDate.of(2026, 6, 6))
-                .build();
+    private CompanyRegistryEntry entry(int index) {
+        return new CompanyRegistryEntry(
+                "%08d".formatted(index),
+                "회사%s".formatted(index),
+                null,
+                null,
+                LocalDate.of(2026, 6, 6));
     }
 
     private static class RecordingRepository implements CompanyRepository {

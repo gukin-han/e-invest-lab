@@ -58,7 +58,20 @@ record Item(
 ) {}
 ```
 
-## 5. 응답 해석은 응답 자신의 메서드로
+## 5. 소스 포트는 원천 사실 record 를 반환한다
+
+- 규칙
+  - 외부 원천을 읽는 포트(`~Source`)의 반환·전달 타입은 **원천이 말한 사실만 담은 도메인 record** 다: `CompanyRegistryEntry`, `AnalystReportListing`.
+  - 엔티티(저장 모델) 조립은 유스케이스가 한다. id 발급(`Ids.generate()`), `collectedAt` 같은 수집 메타는 저장이 결정된 시점에만 부여한다.
+  - record 는 domain 패키지에 둔다 — 포트 계약의 일부이기 때문이다.
+- 이유
+  - 포트 계약은 "원천이 무엇을 말했는가"이고, 엔티티는 "우리가 무엇을 저장하기로 했는가"다. 두 결정의 시점이 다르다 — 스킵될 후보에 id 를 발급하는 것은 의미 오류다.
+  - 어댑터가 엔티티를 조립하면 저장 정책(id 전략, 수집 시각)이 인프라로 새고, 어댑터 교체가 저장 의미를 바꿀 수 있게 된다.
+- 예시
+  - `CompanyRegistrySource.streamAll(Consumer<CompanyRegistryEntry>)` → 유스케이스의 `toCompany(entry)` 에서 id 발급
+  - `AnalystReportSource.fetchListings(...)` → 유스케이스에서 `AnalystReport` 조립 + `collectedAt` 부여
+
+## 6. 응답 해석은 응답 자신의 메서드로
 
 - 규칙
   - status 매핑·선택·도메인 변환처럼 "그 응답을 우리 것으로 해석하는 지식"은 응답 record의 메서드로 둔다: `DisclosureSearchResponse.toFiling(corpCode)`.

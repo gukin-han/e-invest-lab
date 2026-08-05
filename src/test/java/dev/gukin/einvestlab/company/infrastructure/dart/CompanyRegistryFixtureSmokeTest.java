@@ -1,6 +1,6 @@
 package dev.gukin.einvestlab.company.infrastructure.dart;
 
-import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,21 +19,21 @@ class CompanyRegistryFixtureSmokeTest {
     @DisplayName("실제 등록부 zip 응답을 끝까지 읽고 알려진 상장 회사를 찾는다")
     void shouldReadCapturedCorpCodeZipFixture() {
         AtomicInteger count = new AtomicInteger();
-        AtomicReference<Company> samsung = new AtomicReference<>();
+        AtomicReference<CompanyRegistryEntry> samsung = new AtomicReference<>();
 
-        reader.read(corpCodeZipFixture(), company -> {
+        reader.read(corpCodeZipFixture(), entry -> {
             count.incrementAndGet();
-            if ("00126380".equals(company.getCorpCode())) {
-                samsung.set(company);
+            if ("00126380".equals(entry.corpCode())) {
+                samsung.set(entry);
             }
         });
 
         assertThat(count.get()).isGreaterThan(100_000);
         assertThat(samsung.get()).isNotNull();
         assertThat(samsung.get())
-                .extracting(Company::getName, Company::getStockCode)
+                .extracting(CompanyRegistryEntry::name, CompanyRegistryEntry::stockCode)
                 .containsExactly("삼성전자", "005930");
-        assertThat(samsung.get().getRegistryModifiedDate()).isNotNull();
+        assertThat(samsung.get().registryModifiedDate()).isNotNull();
     }
 
     private InputStream corpCodeZipFixture() {

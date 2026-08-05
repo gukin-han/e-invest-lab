@@ -1,8 +1,10 @@
 package dev.gukin.einvestlab.company.application;
 
 import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
 import dev.gukin.einvestlab.company.domain.CompanyRepository;
+import dev.gukin.einvestlab.global.id.Ids;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -43,11 +45,22 @@ public class CompanyRegistrySyncUseCase {
         private final List<Company> buffer = new ArrayList<>(BATCH_SIZE);
         private int upsertedCount;
 
-        private void accept(Company company) {
-            buffer.add(company);
+        private void accept(CompanyRegistryEntry entry) {
+            buffer.add(toCompany(entry));
             if (buffer.size() == BATCH_SIZE) {
                 flush();
             }
+        }
+
+        private Company toCompany(CompanyRegistryEntry entry) {
+            return Company.builder()
+                    .id(Ids.generate())
+                    .corpCode(entry.corpCode())
+                    .name(entry.name())
+                    .englishName(entry.englishName())
+                    .stockCode(entry.stockCode())
+                    .registryModifiedDate(entry.registryModifiedDate())
+                    .build();
         }
 
         private void finish() {

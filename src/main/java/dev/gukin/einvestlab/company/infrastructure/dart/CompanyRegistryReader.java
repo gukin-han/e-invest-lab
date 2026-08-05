@@ -1,8 +1,7 @@
 package dev.gukin.einvestlab.company.infrastructure.dart;
 
-import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
-import dev.gukin.einvestlab.global.id.Ids;
 import org.springframework.stereotype.Component;
 
 import javax.xml.stream.XMLInputFactory;
@@ -23,13 +22,13 @@ public class CompanyRegistryReader {
 
     private static final DateTimeFormatter DART_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    public void read(InputStream zipBody, Consumer<Company> handler) {
+    public void read(InputStream zipBody, Consumer<CompanyRegistryEntry> handler) {
         try (ZipInputStream zipInput = new ZipInputStream(zipBody)) {
             ZipEntry entry = zipInput.getNextEntry();
             if (entry == null || !entry.getName().endsWith(".xml")) {
                 throw new CompanyRegistrySourceException("corpCode zip 안에 .xml 항목이 없음: " + entry);
             }
-            parseCompanies(zipInput, handler);
+            parseEntries(zipInput, handler);
         } catch (ZipException e) {
             throw new CompanyRegistrySourceException("corpCode 응답이 zip 이 아님 (DART 에러 본문 가능성)", e);
         } catch (IOException | XMLStreamException e) {
@@ -37,7 +36,7 @@ public class CompanyRegistryReader {
         }
     }
 
-    private void parseCompanies(InputStream xmlInput, Consumer<Company> handler) throws XMLStreamException {
+    private void parseEntries(InputStream xmlInput, Consumer<CompanyRegistryEntry> handler) throws XMLStreamException {
         XMLStreamReader reader = createXmlReader(xmlInput);
         try {
             String corpCode = null;
@@ -58,14 +57,12 @@ public class CompanyRegistryReader {
                         case "modify_date" -> modifyDate = reader.getElementText();
                     }
                 } else if (event == XMLStreamConstants.END_ELEMENT && "list".equals(reader.getLocalName())) {
-                    handler.accept(Company.builder()
-                            .id(Ids.generate())
-                            .corpCode(corpCode)
-                            .name(name)
-                            .englishName(englishName)
-                            .stockCode(normalizeStockCode(stockCode))
-                            .registryModifiedDate(parseDate(modifyDate))
-                            .build());
+                    handler.accept(new CompanyRegistryEntry(
+                            corpCode,
+                            name,
+                            englishName,
+                            normalizeStockCode(stockCode),
+                            parseDate(modifyDate)));
                 }
             }
         } finally {

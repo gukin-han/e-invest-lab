@@ -1,6 +1,6 @@
 package dev.gukin.einvestlab.company.infrastructure.dart;
 
-import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySourceException;
 import dev.gukin.einvestlab.global.config.DartApiProperties;
@@ -24,7 +24,7 @@ public class CompanyRegistrySourceAdapter implements CompanyRegistrySource {
     private final CompanyRegistryReader reader;
 
     @Override
-    public void streamAll(Consumer<Company> handler) {
+    public void streamAll(Consumer<CompanyRegistryEntry> handler) {
         try (InputStream zipBody = fetchCorpCodeZip()) {
             reader.read(zipBody, handler);
         } catch (IOException e) {

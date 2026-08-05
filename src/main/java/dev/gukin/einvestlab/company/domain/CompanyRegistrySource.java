@@ -4,5 +4,5 @@ import java.util.function.Consumer;
 
 public interface CompanyRegistrySource {
 
-    void streamAll(Consumer<Company> handler);
+    void streamAll(Consumer<CompanyRegistryEntry> handler);
 }

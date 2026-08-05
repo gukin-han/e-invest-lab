@@ -1,6 +1,6 @@
 package dev.gukin.einvestlab.company.infrastructure.dart;
 
-import dev.gukin.einvestlab.company.domain.Company;
+import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,20 +23,20 @@ class CompanyRegistryReadUnitTest {
     private final CompanyRegistryReader reader = new CompanyRegistryReader();
 
     @Test
-    @DisplayName("DART 에서 받은 등록부 필드를 회사로 변환해 순서대로 전달한다")
-    void shouldReadCompaniesFromCorpCodeZip() {
-        List<Company> companies = new ArrayList<>();
+    @DisplayName("DART 에서 받은 등록부 필드를 등록부 항목으로 변환해 순서대로 전달한다")
+    void shouldReadEntriesFromCorpCodeZip() {
+        List<CompanyRegistryEntry> entries = new ArrayList<>();
 
-        reader.read(corpCodeZip(), companies::add);
+        reader.read(corpCodeZip(), entries::add);
 
-        assertThat(companies).hasSize(2);
-        assertThat(companies)
+        assertThat(entries).hasSize(2);
+        assertThat(entries)
                 .extracting(
-                        Company::getCorpCode,
-                        Company::getName,
-                        Company::getEnglishName,
-                        Company::getStockCode,
-                        Company::getRegistryModifiedDate
+                        CompanyRegistryEntry::corpCode,
+                        CompanyRegistryEntry::name,
+                        CompanyRegistryEntry::englishName,
+                        CompanyRegistryEntry::stockCode,
+                        CompanyRegistryEntry::registryModifiedDate
                 )
                 .containsExactly(
                         tuple(
@@ -54,9 +54,6 @@ class CompanyRegistryReadUnitTest {
                                 LocalDate.of(2017, 6, 30)
                         )
                 );
-        assertThat(companies)
-                .extracting(Company::getId)
-                .doesNotContainNull();
     }
 
     private InputStream corpCodeZip() {
