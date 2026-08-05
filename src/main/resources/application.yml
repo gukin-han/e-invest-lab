@@ -35,3 +35,7 @@ dart:
 hankyung:
   api:
     base-url: https://consensus.hankyung.com
+
+research:
+  pdf-storage:
+    root: ./data/analyst-report-pdfs

@@ -5,6 +5,8 @@ import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 @RequiredArgsConstructor
 public class AnalystReportRepositoryAdapter implements AnalystReportRepository {
@@ -19,5 +21,10 @@ public class AnalystReportRepositoryAdapter implements AnalystReportRepository {
     @Override
     public boolean existsByReportIdx(long reportIdx) {
         return jpa.existsByReportIdx(reportIdx);
+    }
+
+    @Override
+    public List<AnalystReport> findAllWithoutPdf() {
+        return jpa.findAllByPdfPathIsNull();
     }
 }

@@ -62,6 +62,43 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
+    @DisplayName("PDF 경로를 붙일 때")
+    class WhenAttachingPdfPath {
+
+        @Test
+        @DisplayName("경로가 없는 리포트만 미보유로 조회되고, 붙이면 빠진다")
+        void shouldFindOnlyReportsWithoutPdfPath() {
+            UUID id = Ids.generate();
+            repository.save(sample(id, 651490L));
+
+            assertThat(repository.findAllByPdfPathIsNull())
+                    .extracting(AnalystReport::getReportIdx)
+                    .containsExactly(651490L);
+
+            AnalystReport report = repository.findById(id).orElseThrow();
+            report.attachPdf("2026/08/651490.pdf");
+            repository.saveAndFlush(report);
+
+            assertThat(repository.findAllByPdfPathIsNull()).isEmpty();
+            assertThat(repository.findById(id).orElseThrow().getPdfPath())
+                    .isEqualTo("2026/08/651490.pdf");
+        }
+
+        private AnalystReport sample(UUID id, long reportIdx) {
+            return AnalystReport.builder()
+                    .id(id)
+                    .reportIdx(reportIdx)
+                    .stockCode("016360")
+                    .companyName("삼성증권")
+                    .title("삼성증권(016360) 최대실적 지속 경신")
+                    .broker("LS증권")
+                    .publishedDate(LocalDate.of(2026, 8, 5))
+                    .collectedAt(Instant.parse("2026-08-05T03:00:00Z"))
+                    .build();
+        }
+    }
+
+    @Nested
     @DisplayName("같은 리포트 식별자로 두 번 저장할 때")
     class WhenSavingDuplicateReportIdx {
 

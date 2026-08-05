@@ -45,6 +45,9 @@ src/main/resources/static/
 .env
 application-local.properties
 
+### Collected raw files (PDF 원본 등) ###
+data/
+
 ### JVM heap dumps ###
 *.hprof
 

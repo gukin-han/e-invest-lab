@@ -99,5 +99,10 @@ class AnalystReportCollectUnitTest {
         public boolean existsByReportIdx(long reportIdx) {
             return existing != null && existing == reportIdx;
         }
+
+        @Override
+        public List<AnalystReport> findAllWithoutPdf() {
+            return List.of();
+        }
     }
 }

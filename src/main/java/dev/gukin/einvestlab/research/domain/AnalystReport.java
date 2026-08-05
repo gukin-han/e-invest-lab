@@ -54,6 +54,9 @@ public class AnalystReport {
     @Column(nullable = false)
     private Instant collectedAt;
 
+    @Column(length = 300)
+    private String pdfPath;
+
     @Builder
     public AnalystReport(UUID id, long reportIdx, String stockCode, String companyName,
                          String title, String broker, String authors, LocalDate publishedDate,
@@ -69,5 +72,9 @@ public class AnalystReport {
         this.targetPrice = targetPrice;
         this.opinion = opinion;
         this.collectedAt = collectedAt;
+    }
+
+    public void attachPdf(String pdfPath) {
+        this.pdfPath = pdfPath;
     }
 }

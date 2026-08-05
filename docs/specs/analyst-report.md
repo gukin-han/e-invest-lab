@@ -40,7 +40,7 @@ AnalystReport                          ← 목록 메타 (raw)
   company_name    제목에서 파싱한 종목명
   title, broker(증권사), authors, published_date
   target_price, opinion               ← 목록 명시값 (nullable)
-  pdf_...                             ← PDF 원본 (저장 위치는 열린 결정)
+  pdf_path                            ← 저장 루트 기준 상대 경로. NULL = 미다운로드(재실행 대상)
 
 EpsEstimate                            ← 추출값
   report_idx      → AnalystReport
@@ -62,8 +62,14 @@ EpsEstimate                            ← 추출값
 
 **판정 (잠정): 규칙 파서 2전략(세로형·가로형) + 실패 시 LLM 폴백.** 사업보고서와 반대로 규칙이 1차인 근거 — 이 표는 지표·연도·라벨의 관례가 강한 순수 숫자 표라 서식 분기가 유한하고(3/3 파싱 가능), 규칙 1차는 비용 0에 환각 자체가 불가능. 에스컬레이션 구조(가드 실패 → 상위 수단)는 Offering 추출 ADR과 동형이고, 3곳 표본이라 잠정 — 빌드 후 실패 리포트로 검증.
 
+## PDF 저장 결정 (2026-08-05)
+
+- **파일시스템 + DB 경로**: PDF 는 `research.pdf-storage.root` (기본 `./data/analyst-report-pdfs`, gitignore) 아래 `{yyyy}/{MM}/{report_idx}.pdf`, DB 에는 루트 기준 상대 경로만. EPS 파서(pdftotext)가 파일 경로를 그대로 소비하고 DB 는 메타만 들고 가볍게 유지. DB BLOB(덤프 비대, 임시 파일 우회)·객체 스토리지(의존성·스트림 우회) 대비 선택.
+- **별도 유스케이스**: `POST /internal/analyst-reports/download-pdfs` 가 `pdf_path IS NULL` 인 리포트만 다운로드. 목록 수집과 분리 — 기존 수집분 자동 백필, 실패는 재실행으로 복구, 목록 수집이 다운로드 지연·실패에 안 물림.
+- **상태는 pdf_path null 여부만**: 상태 기계 없음. 원천 실패(`ResearchSourceException`)는 건너뛰고 실패 수로 집계(요약 `(downloaded, failed)`), 다음 실행이 재시도. 디스크 실패는 국소 장애가 아니라서 실행을 중단시킴(`UncheckedIOException`).
+- 다운로드 가드: 응답이 `%PDF` 매직 바이트로 시작하지 않으면(원천 에러 페이지) 저장하지 않고 원천 예외 — DART 비 zip 응답과 동일 패턴. 다운로드 간 1초 지연.
+
 ## 열린 결정
-- **PDF 원본 저장 위치**: 파일시스템 vs DB. 리포트당 ~1MB, 일 수십 건.
 - **폴링 주기**: 미정 (일 1회로 시작해도 충분할 수 있음 — 통계가 실시간일 필요 없음).
 - **즐겨찾기 푸시**: 나중 (유저·인증 도메인 필요).
 
@@ -71,6 +77,6 @@ EpsEstimate                            ← 추출값
 
 1. ~~서식 탐침~~ 완료 (2026-08-04, 3개 증권사 → 규칙 파서 잠정 판정).
 2. ~~목록 수집기~~ 완료 (2026-08-05): `research` 도메인 신설, `infrastructure.hankyung` 목록 파서(실물 HTML 픽스처 회귀), `analyst_reports` 저장(report_idx 멱등), `POST /internal/analyst-reports/collect?from=&to=` (기본 최근 7일).
-3. **PDF 다운로드 + raw 저장** — 저장 위치 결정(파일시스템 유력) 포함.
-4. EPS 파서 (2전략 + 가드 + LLM 폴백).
+3. ~~PDF 다운로드 + raw 저장~~ 완료 (2026-08-05): 파일시스템 + 상대 경로, `POST /internal/analyst-reports/download-pdfs` (미보유만, 멱등).
+4. **EPS 파서** (2전략 + 가드 + LLM 폴백) — 다음.
 5. 폴링 스케줄러.
