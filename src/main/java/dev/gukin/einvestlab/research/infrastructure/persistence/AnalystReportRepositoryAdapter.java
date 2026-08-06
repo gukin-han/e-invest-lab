@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.research.infrastructure.persistence;
 
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
+import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -26,5 +27,10 @@ public class AnalystReportRepositoryAdapter implements AnalystReportRepository {
     @Override
     public List<AnalystReport> findAllWithoutPdf() {
         return jpa.findAllByPdfPathIsNull();
+    }
+
+    @Override
+    public List<AnalystReport> findAllPendingEpsExtraction() {
+        return jpa.findAllPendingEpsExtraction(EpsExtractionStatus.FAILED);
     }
 }

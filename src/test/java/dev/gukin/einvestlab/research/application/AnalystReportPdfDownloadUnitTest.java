@@ -9,6 +9,7 @@ import dev.gukin.einvestlab.research.domain.ResearchSourceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -101,6 +102,11 @@ class AnalystReportPdfDownloadUnitTest {
             return "%d/%02d/%d.pdf".formatted(
                     publishedDate.getYear(), publishedDate.getMonthValue(), reportIdx);
         }
+
+        @Override
+        public Path resolve(String relativePath) {
+            return Path.of("/storage-root").resolve(relativePath);
+        }
     }
 
     private static class StubRepository implements AnalystReportRepository {
@@ -122,6 +128,11 @@ class AnalystReportPdfDownloadUnitTest {
         @Override
         public List<AnalystReport> findAllWithoutPdf() {
             return withoutPdf;
+        }
+
+        @Override
+        public List<AnalystReport> findAllPendingEpsExtraction() {
+            return List.of();
         }
     }
 }

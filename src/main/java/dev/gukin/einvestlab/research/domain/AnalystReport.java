@@ -2,6 +2,8 @@ package dev.gukin.einvestlab.research.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -57,6 +59,10 @@ public class AnalystReport {
     @Column(length = 300)
     private String pdfPath;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private EpsExtractionStatus epsExtractionStatus;
+
     @Builder
     public AnalystReport(UUID id, long reportIdx, String stockCode, String companyName,
                          String title, String broker, String authors, LocalDate publishedDate,
@@ -76,5 +82,9 @@ public class AnalystReport {
 
     public void attachPdf(String pdfPath) {
         this.pdfPath = pdfPath;
+    }
+
+    public void recordEpsExtraction(EpsExtractionStatus status) {
+        this.epsExtractionStatus = status;
     }
 }

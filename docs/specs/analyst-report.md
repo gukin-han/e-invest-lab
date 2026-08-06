@@ -43,10 +43,15 @@ AnalystReport                          ← 목록 메타 (raw)
   pdf_path                            ← 저장 루트 기준 상대 경로. NULL = 미다운로드(재실행 대상)
 
 EpsEstimate                            ← 추출값
-  report_idx      → AnalystReport
+  report_idx      → AnalystReport (자연키 참조, report_idx+fiscal_year 유니크)
   fiscal_year     회계연도 (예: 2026)
-  estimated       추정 여부 (연도 헤더의 E 표기)
+  estimated       추정 여부 (연도 헤더의 E/F 표기)
   eps             명시값 (원)
+  extracted_at    추출 실행 시각 (진입점 캡처)
+
+AnalystReport.eps_extraction_status    ← 추출 상태
+  NULL=미시도 / EXTRACTED / NO_SUMMARY_TABLE / FAILED
+  재추출 대상은 NULL·FAILED 만 — NO_SUMMARY_TABLE 은 "원래 없음" 확정
 ```
 
 ## 서식 탐침 결과 (2026-08-04 · 3개 증권사)
@@ -74,6 +79,16 @@ EpsEstimate                            ← 추출값
 - 첫 실행 185/0 (downloaded/failed), 재실행 0/0 (멱등 확인). 전 파일 `%PDF` 매직 통과, DB 경로 ↔ 실파일 1:1 일치. 총 156MB (건당 약 850KB).
 - **EPS 라벨 분포: 첫 1~2페이지에 EPS 존재 143/185 (77%).** 나머지 42건은 요약표 없이 산문에만 EPS 언급(해외 실적 코멘트 등)으로 보임 → 파서는 "추출 실패"와 "요약표 원래 없음"을 구분해야 함 (없으면 없는 대로 원칙).
 
+## EPS 추출 결정 (2026-08-07)
+
+- **텍스트 추출 = pdftotext 바이너리 직접 호출** (ProcessBuilder, `-layout`, 첫 2페이지). 탐침·실측이 전부 이 출력 기준이라 파서 규칙이 그대로 유효. PDFBox 는 레이아웃 보존이 달라 탐침 무효화, 별도 추출 서버는 정당화할 요구(파이썬 전용 능력·부하 격리)가 아직 없음. 어댑터 빈 생성 시 `pdftotext -v` 로 기동 가드 — 미설치 환경은 시작 시점에 실패.
+- **포트 구성**: 유스케이스는 `EpsExtractor` 포트(경로 → 추출 결과) 하나만 본다. `infrastructure/pdf` 안에서 `PdfTextReader`(프로세스 호출) + `EpsSummaryTableParser`(표 해석) 합성 — 나중에 추출 수단이 바뀌어도 어댑터만 교체.
+- **판정 3분류**: EPS 앵커 자체가 없으면 NO_SUMMARY_TABLE(확정, 재시도 안 함), 앵커는 있는데 못 읽으면 FAILED(재시도 대상), 성공이면 EXTRACTED + `eps_estimates` 저장. 저장과 상태 기록은 리포트 단위 한 트랜잭션.
+- **파서 2전략**: 세로형은 EPS 라벨이 행 첫 토큰 + 위쪽 연도 헤더 행을 찾아 열 끝위치 근접 매칭(허용 오차 10자) — 사이드바 차트 축 숫자(80,000) 오염을 거리로 걸러냄. 가로형은 헤더 라벨 토큰 인덱스로 연도 행의 값 선택(열 위치 검산 동반). 최소 2개 연도 미만이면 실패.
+- **저장 전 가드**: 회계연도는 발행연도 -3 ~ +5, 연도 중복 금지, 위반 시 저장 없이 FAILED.
+- **실물 픽스처 4종**(`fixtures/research/eps-*.txt`, pdftotext 실제 출력 발췌): 세로형(한화, 음수 EPS), 세로형+사이드바 오염(LS, `EPS (원)` 라벨), 가로형(상상인), 산문 언급만(메리츠). known-violation(추정 플래그 고정 버그)으로 빨간불 확인 후 원복.
+- 한계: 가로형 표가 있는데 파싱이 안 되는 경우 일부가 NO_SUMMARY_TABLE 로 분류될 수 있음(산문 오탐 방지와의 교환). 라이브 실측 분포로 재평가.
+
 ## 열린 결정
 - **폴링 주기**: 미정 (일 1회로 시작해도 충분할 수 있음 — 통계가 실시간일 필요 없음).
 - **즐겨찾기 푸시**: 나중 (유저·인증 도메인 필요).
@@ -83,5 +98,5 @@ EpsEstimate                            ← 추출값
 1. ~~서식 탐침~~ 완료 (2026-08-04, 3개 증권사 → 규칙 파서 잠정 판정).
 2. ~~목록 수집기~~ 완료 (2026-08-05): `research` 도메인 신설, `infrastructure.hankyung` 목록 파서(실물 HTML 픽스처 회귀), `analyst_reports` 저장(report_idx 멱등), `POST /internal/analyst-reports/collect?from=&to=` (기본 최근 7일).
 3. ~~PDF 다운로드 + raw 저장~~ 완료 (2026-08-05): 파일시스템 + 상대 경로, `POST /internal/analyst-reports/download-pdfs` (미보유만, 멱등).
-4. **EPS 파서** (2전략 + 가드 + LLM 폴백) — 다음.
+4. ~~EPS 파서~~ 구현 완료 (2026-08-07): 규칙 2전략 + 3판정 + 가드, `POST /internal/analyst-reports/extract-eps`. 라이브 실측(185건 분포) 대기 — 결과 보고 LLM 폴백 필요성 판단.
 5. 폴링 스케줄러.

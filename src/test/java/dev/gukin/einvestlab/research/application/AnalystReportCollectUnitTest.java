@@ -104,5 +104,10 @@ class AnalystReportCollectUnitTest {
         public List<AnalystReport> findAllWithoutPdf() {
             return List.of();
         }
+
+        @Override
+        public List<AnalystReport> findAllPendingEpsExtraction() {
+            return List.of();
+        }
     }
 }

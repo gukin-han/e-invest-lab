@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.research.infrastructure;
 
 import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
+import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.infrastructure.persistence.AnalystReportJpaRepository;
 import dev.gukin.einvestlab.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
@@ -58,6 +59,45 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
             assertThat(found.getTargetPrice()).isEqualTo(115_000L);
             assertThat(found.getCollectedAt()).isEqualTo(collectedAt);
             assertThat(repository.existsByReportIdx(651490L)).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("EPS 추출 대상을 조회할 때")
+    class WhenFindingPendingEpsExtraction {
+
+        @Test
+        @DisplayName("PDF 보유 + 미시도/실패만 나오고, 확정 상태는 빠진다")
+        void shouldFindOnlyPendingReports() {
+            AnalystReport withoutPdf = saved(1L, null);
+            AnalystReport untried = saved(2L, null);
+            untried.attachPdf("2026/08/2.pdf");
+            AnalystReport failed = saved(3L, EpsExtractionStatus.FAILED);
+            AnalystReport extracted = saved(4L, EpsExtractionStatus.EXTRACTED);
+            AnalystReport noTable = saved(5L, EpsExtractionStatus.NO_SUMMARY_TABLE);
+            repository.saveAll(java.util.List.of(withoutPdf, untried, failed, extracted, noTable));
+
+            assertThat(repository.findAllPendingEpsExtraction(EpsExtractionStatus.FAILED))
+                    .extracting(AnalystReport::getReportIdx)
+                    .containsExactlyInAnyOrder(2L, 3L);
+        }
+
+        private AnalystReport saved(long reportIdx, EpsExtractionStatus status) {
+            AnalystReport report = AnalystReport.builder()
+                    .id(Ids.generate())
+                    .reportIdx(reportIdx)
+                    .stockCode("016360")
+                    .companyName("삼성증권")
+                    .title("삼성증권(016360) 최대실적 지속 경신")
+                    .broker("LS증권")
+                    .publishedDate(LocalDate.of(2026, 8, 5))
+                    .collectedAt(Instant.parse("2026-08-05T03:00:00Z"))
+                    .build();
+            if (status != null) {
+                report.attachPdf("2026/08/" + reportIdx + ".pdf");
+                report.recordEpsExtraction(status);
+            }
+            return report;
         }
     }
 

@@ -9,4 +9,6 @@ public interface AnalystReportRepository {
     boolean existsByReportIdx(long reportIdx);
 
     List<AnalystReport> findAllWithoutPdf();
+
+    List<AnalystReport> findAllPendingEpsExtraction();
 }
