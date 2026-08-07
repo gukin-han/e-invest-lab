@@ -3,8 +3,10 @@ package dev.gukin.einvestlab.research.application;
 import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportPdfStore;
+import dev.gukin.einvestlab.research.domain.EpsConsensus;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
 import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
+import dev.gukin.einvestlab.research.domain.EpsRevision;
 import dev.gukin.einvestlab.research.domain.EpsExtraction;
 import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.domain.EpsExtractor;
@@ -180,6 +182,16 @@ class AnalystReportEpsExtractUnitTest {
         @Override
         public void saveAll(List<EpsEstimate> estimates) {
             saved.addAll(estimates);
+        }
+
+        @Override
+        public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
+            return List.of();
+        }
+
+        @Override
+        public List<EpsRevision> findRevisions(String stockCode, int fiscalYear) {
+            return List.of();
         }
     }
 
