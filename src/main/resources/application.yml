@@ -39,3 +39,8 @@ hankyung:
 research:
   pdf-storage:
     root: ./data/analyst-report-pdfs
+
+fsc:
+  api:
+    base-url: https://apis.data.go.kr/1160100/service
+    key: ${STOCK_PRICE_API_KEY:}
