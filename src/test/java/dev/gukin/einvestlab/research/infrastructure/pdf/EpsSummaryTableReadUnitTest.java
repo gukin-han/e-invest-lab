@@ -152,6 +152,28 @@ class EpsSummaryTableReadUnitTest {
     }
 
     @Test
+    @DisplayName("장기 연혁 표(9개년): 산출식 라벨 소음을 건너뛰고 헤더 전체 연도를 짝짓는다")
+    void shouldParseLongHistoryTableSkippingValuationNoise() {
+        EpsExtraction extraction = parser.parse(fixture("eps-vertical-long-history.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.EXTRACTED);
+        assertThat(extraction.figures()).hasSize(9);
+        assertThat(extraction.figures().getFirst())
+                .isEqualTo(new EpsFigure(2019, false, new BigDecimal("794")));
+        assertThat(extraction.figures().getLast())
+                .isEqualTo(new EpsFigure(2027, true, new BigDecimal("12211")));
+    }
+
+    @Test
+    @DisplayName("밸류에이션 산출문의 숫자(연도 3개 미만)는 채택하지 않고 실패로 판정한다")
+    void shouldRejectValuationProseWithFewFigures() {
+        EpsExtraction extraction = parser.parse(fixture("eps-prose-valuation.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.FAILED);
+        assertThat(extraction.figures()).isEmpty();
+    }
+
+    @Test
     @DisplayName("산문에만 EPS 가 언급되면 요약표 없음으로 판정한다")
     void shouldReportNoSummaryTableForProseOnlyMention() {
         EpsExtraction extraction = parser.parse(fixture("eps-prose-only.txt"));

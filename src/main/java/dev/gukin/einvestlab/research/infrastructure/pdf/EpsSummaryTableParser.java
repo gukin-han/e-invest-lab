@@ -25,7 +25,7 @@ public class EpsSummaryTableParser {
     private static final int DATA_ROW_LOOKAHEAD = 14;
     private static final int PAIR_TOLERANCE = 10;
     private static final int INDEX_CHECK_TOLERANCE = 20;
-    private static final int MIN_FIGURES = 2;
+    private static final int MIN_FIGURES = 3;
 
     public EpsExtraction parse(String text) {
         List<List<Token>> lines = Token.linesOf(text);

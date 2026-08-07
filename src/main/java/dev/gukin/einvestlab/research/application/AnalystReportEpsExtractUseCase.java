@@ -24,7 +24,7 @@ import java.util.Set;
 @Slf4j
 public class AnalystReportEpsExtractUseCase {
 
-    private static final int YEARS_BEFORE_PUBLISH = 5;
+    private static final int YEARS_BEFORE_PUBLISH = 10;
     private static final int YEARS_AFTER_PUBLISH = 5;
 
     private final AnalystReportRepository reportRepository;
