@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.research.infrastructure.persistence;
 
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,7 +13,9 @@ import java.util.UUID;
 
 public interface EpsEstimateJpaRepository extends JpaRepository<EpsEstimate, UUID> {
 
-    void deleteAllByReportIdx(long reportIdx);
+    @Modifying
+    @Query("delete from EpsEstimate e where e.reportIdx = :reportIdx")
+    void deleteAllByReportIdx(@Param("reportIdx") long reportIdx);
 
     interface ConsensusRow {
         Integer getFiscalYear();
