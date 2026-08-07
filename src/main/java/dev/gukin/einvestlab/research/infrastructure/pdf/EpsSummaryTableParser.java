@@ -33,15 +33,16 @@ public class EpsSummaryTableParser {
         boolean anchorFound = false;
         for (int i = 0; i < lines.size(); i++) {
             List<Token> line = lines.get(i);
-            if (line.isEmpty() || !containsEpsLabel(line)) {
+            int labelIndex = indexOfEpsLabel(line);
+            if (labelIndex < 0) {
                 continue;
             }
-            List<Token> numbers = numbers(line);
+            List<Token> numbersAfterLabel = numbers(line.subList(labelIndex + 1, line.size()));
             List<EpsFigure> figures;
-            if (isVerticalEpsRow(line, numbers)) {
+            if (!numbersAfterLabel.isEmpty()) {
                 anchorFound = true;
-                figures = parseVertical(lines, i, numbers);
-            } else if (numbers.isEmpty()) {
+                figures = parseVertical(lines, i, numbersAfterLabel);
+            } else if (numbers(line).isEmpty()) {
                 figures = parseHorizontal(lines, i);
             } else {
                 continue;
@@ -53,10 +54,6 @@ public class EpsSummaryTableParser {
         return anchorFound ? EpsExtraction.failed() : EpsExtraction.noSummaryTable();
     }
 
-    private boolean isVerticalEpsRow(List<Token> line, List<Token> numbers) {
-        return line.getFirst().matches(EPS_LABEL) && !numbers.isEmpty();
-    }
-
     private List<EpsFigure> parseVertical(List<List<Token>> lines, int epsRowIndex, List<Token> numbers) {
         List<Token> years = findYearHeaderAbove(lines, epsRowIndex);
         return pairByColumn(years, numbers);
@@ -64,12 +61,31 @@ public class EpsSummaryTableParser {
 
     private List<Token> findYearHeaderAbove(List<List<Token>> lines, int epsRowIndex) {
         for (int i = epsRowIndex - 1; i >= Math.max(0, epsRowIndex - YEAR_HEADER_LOOKBACK); i--) {
-            List<Token> years = years(lines.get(i));
+            List<Token> years = dedupeKeepingLeftmost(years(lines.get(i)));
             if (years.size() >= 2) {
                 return years;
             }
         }
         return List.of();
+    }
+
+    private List<Token> dedupeKeepingLeftmost(List<Token> years) {
+        Set<Integer> seen = new HashSet<>();
+        List<Token> unique = new ArrayList<>();
+        for (Token year : years) {
+            if (seen.add(fiscalYearOf(year))) {
+                unique.add(year);
+            }
+        }
+        return unique;
+    }
+
+    private int fiscalYearOf(Token yearToken) {
+        Matcher matcher = YEAR.matcher(yearToken.text());
+        if (!matcher.matches()) {
+            throw new IllegalStateException("연도 토큰이 아님: " + yearToken.text());
+        }
+        return Integer.parseInt(matcher.group(1));
     }
 
     private List<EpsFigure> pairByColumn(List<Token> years, List<Token> numbers) {
@@ -149,10 +165,8 @@ public class EpsSummaryTableParser {
         if (!matcher.matches()) {
             throw new IllegalStateException("연도 토큰이 아님: " + yearToken.text());
         }
-        int fiscalYear = Integer.parseInt(matcher.group(1));
-        String suffix = matcher.group(2);
-        boolean estimated = "E".equals(suffix) || "F".equals(suffix);
-        return new EpsFigure(fiscalYear, estimated, parseNumber(numberToken.text()));
+        boolean estimated = "E".equals(matcher.group(2)) || "F".equals(matcher.group(2));
+        return new EpsFigure(Integer.parseInt(matcher.group(1)), estimated, parseNumber(numberToken.text()));
     }
 
     private BigDecimal parseNumber(String raw) {
@@ -160,10 +174,6 @@ public class EpsSummaryTableParser {
                 || (raw.startsWith("(") && raw.endsWith(")"));
         BigDecimal value = new BigDecimal(raw.replaceAll("[-△(),]", ""));
         return negative ? value.negate() : value;
-    }
-
-    private boolean containsEpsLabel(List<Token> line) {
-        return line.stream().anyMatch(token -> token.matches(EPS_LABEL));
     }
 
     private List<Token> years(List<Token> line) {

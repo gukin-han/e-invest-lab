@@ -11,7 +11,7 @@ import java.nio.file.Path;
 @RequiredArgsConstructor
 public class EpsExtractorAdapter implements EpsExtractor {
 
-    private static final int SUMMARY_TABLE_PAGES = 2;
+    private static final int SUMMARY_TABLE_PAGES = 4;
 
     private final PdfTextReader textReader;
     private final EpsSummaryTableParser parser;

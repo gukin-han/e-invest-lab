@@ -51,6 +51,56 @@ class EpsSummaryTableReadUnitTest {
     }
 
     @Test
+    @DisplayName("세로형 2단 레이아웃: 본문 산문 오른쪽에 붙은 표에서 라벨 뒤 숫자만 짝짓는다")
+    void shouldParseRightColumnTableBesideProse() {
+        EpsExtraction extraction = parser.parse(fixture("eps-vertical-right-column.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.EXTRACTED);
+        assertThat(extraction.figures())
+                .extracting(EpsFigure::fiscalYear, EpsFigure::estimated, EpsFigure::eps)
+                .containsExactly(
+                        tuple(2025, false, new BigDecimal("-1806")),
+                        tuple(2026, true, new BigDecimal("3109")),
+                        tuple(2027, true, new BigDecimal("2765")),
+                        tuple(2028, true, new BigDecimal("3957"))
+                );
+    }
+
+    @Test
+    @DisplayName("세로형 연도 헤더에 같은 연도가 두 번 있으면 왼쪽(첫 표) 열만 쓴다")
+    void shouldKeepLeftmostColumnOnDuplicateYearHeader() {
+        EpsExtraction extraction = parser.parse(fixture("eps-vertical-duplicate-year.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.EXTRACTED);
+        assertThat(extraction.figures())
+                .extracting(EpsFigure::fiscalYear, EpsFigure::estimated, EpsFigure::eps)
+                .containsExactly(
+                        tuple(2024, false, new BigDecimal("12442")),
+                        tuple(2025, false, new BigDecimal("14227")),
+                        tuple(2026, true, new BigDecimal("14843")),
+                        tuple(2027, true, new BigDecimal("14339")),
+                        tuple(2028, true, new BigDecimal("15793"))
+                );
+    }
+
+    @Test
+    @DisplayName("세로형 A/F 접미 연도: 후단 페이지 2단 표에서 A는 실적, F는 추정으로 읽는다")
+    void shouldParseTwoColumnPageThreeTableWithAnnualSuffixes() {
+        EpsExtraction extraction = parser.parse(fixture("eps-vertical-two-column-page3.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.EXTRACTED);
+        assertThat(extraction.figures())
+                .extracting(EpsFigure::fiscalYear, EpsFigure::estimated, EpsFigure::eps)
+                .containsExactly(
+                        tuple(2024, false, new BigDecimal("1780")),
+                        tuple(2025, false, new BigDecimal("2706")),
+                        tuple(2026, true, new BigDecimal("3224")),
+                        tuple(2027, true, new BigDecimal("4298")),
+                        tuple(2028, true, new BigDecimal("5607"))
+                );
+    }
+
+    @Test
     @DisplayName("가로형: 헤더의 EPS 열 위치로 연도 행마다 값을 뽑는다")
     void shouldParseHorizontalTable() {
         EpsExtraction extraction = parser.parse(fixture("eps-horizontal.txt"));
