@@ -3,7 +3,6 @@ package dev.gukin.einvestlab.research.application;
 import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportPdfStore;
-import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
 import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
 import dev.gukin.einvestlab.research.domain.EpsExtraction;
@@ -11,12 +10,9 @@ import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.domain.EpsExtractor;
 import dev.gukin.einvestlab.research.domain.EpsFigure;
 import dev.gukin.einvestlab.research.domain.PdfTextExtractionException;
+import dev.gukin.einvestlab.support.RecordingTransactionManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -35,17 +31,17 @@ class AnalystReportEpsExtractUnitTest {
 
     private static final Instant BASE_TIME = Instant.parse("2026-08-07T03:00:00Z");
 
-    private final StubReportRepository reportRepository = new StubReportRepository();
+    private final StubAnalystReportRepository reportRepository = new StubAnalystReportRepository();
     private final StubEstimateRepository estimateRepository = new StubEstimateRepository();
     private final StubExtractor extractor = new StubExtractor();
     private final AnalystReportEpsExtractUseCase useCase = new AnalystReportEpsExtractUseCase(
             reportRepository, estimateRepository, new StubPdfStore(), extractor,
-            new StubTransactionManager());
+            new RecordingTransactionManager());
 
     @Test
     @DisplayName("추출 성공이면 추정치를 저장하고 리포트를 EXTRACTED 로 기록한다")
     void shouldSaveEstimatesAndMarkExtracted() {
-        reportRepository.pending = List.of(report(1L));
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
         extractor.results.put(1L, EpsExtraction.extracted(List.of(
                 new EpsFigure(2025, false, new BigDecimal("2130")),
                 new EpsFigure(2026, true, new BigDecimal("4087")))));
@@ -68,7 +64,7 @@ class AnalystReportEpsExtractUnitTest {
     @Test
     @DisplayName("요약표 없음이면 추정치 없이 상태만 확정 기록한다")
     void shouldMarkNoSummaryTableWithoutEstimates() {
-        reportRepository.pending = List.of(report(1L));
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
         extractor.results.put(1L, EpsExtraction.noSummaryTable());
 
         AnalystReportEpsExtractResult result = useCase.extractAll(BASE_TIME);
@@ -82,7 +78,7 @@ class AnalystReportEpsExtractUnitTest {
     @Test
     @DisplayName("PDF 처리 실패는 실패로 세고 나머지 리포트는 계속 진행한다")
     void shouldContinueAfterExtractionFailure() {
-        reportRepository.pending = List.of(report(1L), report(2L));
+        reportRepository.pendingEpsExtraction = List.of(report(1L), report(2L));
         extractor.failingReportIdx = 1L;
         extractor.results.put(2L, EpsExtraction.extracted(List.of(
                 new EpsFigure(2026, true, new BigDecimal("1000")),
@@ -102,7 +98,7 @@ class AnalystReportEpsExtractUnitTest {
     @Test
     @DisplayName("발행연도에서 먼 연도가 섞이면 저장하지 않고 실패로 기록한다")
     void shouldFailOnOutOfRangeFiscalYear() {
-        reportRepository.pending = List.of(report(1L));
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
         extractor.results.put(1L, EpsExtraction.extracted(List.of(
                 new EpsFigure(2026, false, new BigDecimal("1000")),
                 new EpsFigure(2090, true, new BigDecimal("9999")))));
@@ -118,7 +114,7 @@ class AnalystReportEpsExtractUnitTest {
     @Test
     @DisplayName("같은 연도가 두 번 나오면 저장하지 않고 실패로 기록한다")
     void shouldFailOnDuplicateFiscalYear() {
-        reportRepository.pending = List.of(report(1L));
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
         extractor.results.put(1L, EpsExtraction.extracted(List.of(
                 new EpsFigure(2026, true, new BigDecimal("1000")),
                 new EpsFigure(2026, true, new BigDecimal("2000")))));
@@ -177,33 +173,6 @@ class AnalystReportEpsExtractUnitTest {
         }
     }
 
-    private static class StubReportRepository implements AnalystReportRepository {
-
-        private List<AnalystReport> pending = List.of();
-        private final List<AnalystReport> saved = new ArrayList<>();
-
-        @Override
-        public AnalystReport save(AnalystReport analystReport) {
-            saved.add(analystReport);
-            return analystReport;
-        }
-
-        @Override
-        public boolean existsByReportIdx(long reportIdx) {
-            return false;
-        }
-
-        @Override
-        public List<AnalystReport> findAllWithoutPdf() {
-            return List.of();
-        }
-
-        @Override
-        public List<AnalystReport> findAllPendingEpsExtraction() {
-            return pending;
-        }
-    }
-
     private static class StubEstimateRepository implements EpsEstimateRepository {
 
         private final List<EpsEstimate> saved = new ArrayList<>();
@@ -214,19 +183,4 @@ class AnalystReportEpsExtractUnitTest {
         }
     }
 
-    private static class StubTransactionManager implements PlatformTransactionManager {
-
-        @Override
-        public TransactionStatus getTransaction(TransactionDefinition definition) {
-            return new SimpleTransactionStatus();
-        }
-
-        @Override
-        public void commit(TransactionStatus status) {
-        }
-
-        @Override
-        public void rollback(TransactionStatus status) {
-        }
-    }
 }

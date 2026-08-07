@@ -4,13 +4,11 @@ import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.domain.CompanyRegistryEntry;
 import dev.gukin.einvestlab.company.domain.CompanyRegistrySource;
 import dev.gukin.einvestlab.company.domain.CompanyRepository;
+import dev.gukin.einvestlab.support.RecordingTransactionManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -41,8 +39,8 @@ class CompanyRegistrySyncUnitTest {
                     .extracting(List::size)
                     .containsExactly(1_000, 1_000, 500);
             assertThat(result.upsertedCount()).isEqualTo(2_500);
-            assertThat(transactionManager.startedCount).isEqualTo(3);
-            assertThat(transactionManager.propagations)
+            assertThat(transactionManager.startedCount()).isEqualTo(3);
+            assertThat(transactionManager.propagations())
                     .containsOnly(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         }
 
@@ -67,7 +65,7 @@ class CompanyRegistrySyncUnitTest {
             CompanyRegistrySyncResult result = useCase.syncAll();
 
             assertThat(repository.batches).isEmpty();
-            assertThat(transactionManager.startedCount).isZero();
+            assertThat(transactionManager.startedCount()).isZero();
             assertThat(result.upsertedCount()).isZero();
         }
 
@@ -140,24 +138,4 @@ class CompanyRegistrySyncUnitTest {
         }
     }
 
-    private static class RecordingTransactionManager implements PlatformTransactionManager {
-
-        private int startedCount;
-        private final List<Integer> propagations = new ArrayList<>();
-
-        @Override
-        public TransactionStatus getTransaction(TransactionDefinition definition) {
-            startedCount++;
-            propagations.add(definition.getPropagationBehavior());
-            return new SimpleTransactionStatus();
-        }
-
-        @Override
-        public void commit(TransactionStatus status) {
-        }
-
-        @Override
-        public void rollback(TransactionStatus status) {
-        }
-    }
 }

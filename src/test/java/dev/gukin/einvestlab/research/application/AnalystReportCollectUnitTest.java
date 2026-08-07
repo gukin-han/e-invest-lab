@@ -2,14 +2,12 @@ package dev.gukin.einvestlab.research.application;
 
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportListing;
-import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
 import dev.gukin.einvestlab.research.domain.AnalystReportSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,7 +19,7 @@ class AnalystReportCollectUnitTest {
     private static final Instant BASE_TIME = Instant.parse("2026-08-05T03:00:00Z");
 
     private final StubSource source = new StubSource();
-    private final StubRepository repository = new StubRepository();
+    private final StubAnalystReportRepository repository = new StubAnalystReportRepository();
     private final AnalystReportCollectUseCase useCase =
             new AnalystReportCollectUseCase(source, repository);
 
@@ -29,7 +27,7 @@ class AnalystReportCollectUnitTest {
     @DisplayName("신규 리포트는 저장하고 이미 수집한 리포트는 건너뛴다")
     void shouldCollectNewAndSkipExisting() {
         source.listings = List.of(listing(1L), listing(2L));
-        repository.existing = 1L;
+        repository.existingReportIdx = 1L;
 
         AnalystReportCollectResult result =
                 useCase.collect(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5), BASE_TIME);
@@ -84,30 +82,4 @@ class AnalystReportCollectUnitTest {
         }
     }
 
-    private static class StubRepository implements AnalystReportRepository {
-
-        private final List<AnalystReport> saved = new ArrayList<>();
-        private Long existing;
-
-        @Override
-        public AnalystReport save(AnalystReport analystReport) {
-            saved.add(analystReport);
-            return analystReport;
-        }
-
-        @Override
-        public boolean existsByReportIdx(long reportIdx) {
-            return existing != null && existing == reportIdx;
-        }
-
-        @Override
-        public List<AnalystReport> findAllWithoutPdf() {
-            return List.of();
-        }
-
-        @Override
-        public List<AnalystReport> findAllPendingEpsExtraction() {
-            return List.of();
-        }
-    }
 }

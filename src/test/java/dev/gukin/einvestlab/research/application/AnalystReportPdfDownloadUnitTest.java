@@ -4,7 +4,6 @@ import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportPdfSource;
 import dev.gukin.einvestlab.research.domain.AnalystReportPdfStore;
-import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
 import dev.gukin.einvestlab.research.domain.ResearchSourceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,7 @@ class AnalystReportPdfDownloadUnitTest {
 
     private final StubPdfSource pdfSource = new StubPdfSource();
     private final StubPdfStore pdfStore = new StubPdfStore();
-    private final StubRepository repository = new StubRepository();
+    private final StubAnalystReportRepository repository = new StubAnalystReportRepository();
     private final AnalystReportPdfDownloadUseCase useCase =
             new AnalystReportPdfDownloadUseCase(repository, pdfSource, pdfStore);
 
@@ -109,30 +108,4 @@ class AnalystReportPdfDownloadUnitTest {
         }
     }
 
-    private static class StubRepository implements AnalystReportRepository {
-
-        private List<AnalystReport> withoutPdf = List.of();
-        private final List<AnalystReport> saved = new ArrayList<>();
-
-        @Override
-        public AnalystReport save(AnalystReport analystReport) {
-            saved.add(analystReport);
-            return analystReport;
-        }
-
-        @Override
-        public boolean existsByReportIdx(long reportIdx) {
-            return false;
-        }
-
-        @Override
-        public List<AnalystReport> findAllWithoutPdf() {
-            return withoutPdf;
-        }
-
-        @Override
-        public List<AnalystReport> findAllPendingEpsExtraction() {
-            return List.of();
-        }
-    }
 }

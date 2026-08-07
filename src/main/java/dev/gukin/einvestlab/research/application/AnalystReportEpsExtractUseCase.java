@@ -18,7 +18,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Service
@@ -61,23 +60,20 @@ public class AnalystReportEpsExtractUseCase {
     }
 
     private EpsExtractionStatus extractOne(AnalystReport report, Instant baseTime) {
-        EpsExtractionStatus status;
-        List<EpsFigure> figures = List.of();
+        EpsExtraction extraction;
         try {
-            EpsExtraction extraction = epsExtractor.extract(pdfStore.resolve(report.getPdfPath()));
-            status = applyGuards(extraction, report);
-            figures = extraction.figures();
+            extraction = applyGuards(epsExtractor.extract(pdfStore.resolve(report.getPdfPath())), report);
         } catch (PdfTextExtractionException e) {
             log.warn("EPS 추출 실패 (report_idx={}): {}", report.getReportIdx(), e.getMessage());
-            status = EpsExtractionStatus.FAILED;
+            extraction = EpsExtraction.failed();
         }
-        save(report, status, figures, baseTime);
-        return status;
+        save(report, extraction, baseTime);
+        return extraction.status();
     }
 
-    private EpsExtractionStatus applyGuards(EpsExtraction extraction, AnalystReport report) {
+    private EpsExtraction applyGuards(EpsExtraction extraction, AnalystReport report) {
         if (extraction.status() != EpsExtractionStatus.EXTRACTED) {
-            return extraction.status();
+            return extraction;
         }
         int publishedYear = report.getPublishedDate().getYear();
         Set<Integer> seenYears = new HashSet<>();
@@ -86,26 +82,25 @@ public class AnalystReportEpsExtractUseCase {
                     || figure.fiscalYear() > publishedYear + YEARS_AFTER_PUBLISH) {
                 log.warn("EPS 연도 범위 밖 (report_idx={}, fiscal_year={})",
                         report.getReportIdx(), figure.fiscalYear());
-                return EpsExtractionStatus.FAILED;
+                return EpsExtraction.failed();
             }
             if (!seenYears.add(figure.fiscalYear())) {
                 log.warn("EPS 연도 중복 (report_idx={}, fiscal_year={})",
                         report.getReportIdx(), figure.fiscalYear());
-                return EpsExtractionStatus.FAILED;
+                return EpsExtraction.failed();
             }
         }
-        return EpsExtractionStatus.EXTRACTED;
+        return extraction;
     }
 
-    private void save(AnalystReport report, EpsExtractionStatus status,
-                      List<EpsFigure> figures, Instant baseTime) {
+    private void save(AnalystReport report, EpsExtraction extraction, Instant baseTime) {
         reportTransaction.executeWithoutResult(tx -> {
-            if (status == EpsExtractionStatus.EXTRACTED) {
-                estimateRepository.saveAll(figures.stream()
+            if (extraction.status() == EpsExtractionStatus.EXTRACTED) {
+                estimateRepository.saveAll(extraction.figures().stream()
                         .map(figure -> toEstimate(report, figure, baseTime))
                         .toList());
             }
-            report.recordEpsExtraction(status);
+            report.recordEpsExtraction(extraction.status());
             reportRepository.save(report);
         });
     }
