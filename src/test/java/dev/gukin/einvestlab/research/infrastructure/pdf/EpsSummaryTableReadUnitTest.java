@@ -101,6 +101,40 @@ class EpsSummaryTableReadUnitTest {
     }
 
     @Test
+    @DisplayName("세로형 상세 재무제표: 증감률(%) EPS 행은 무효 처리하고 계속사업 EPS 행을 잡는다")
+    void shouldSkipGrowthRateRowAndParseContinuingEps() {
+        EpsExtraction extraction = parser.parse(fixture("eps-vertical-growth-row-noise.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.EXTRACTED);
+        assertThat(extraction.figures())
+                .extracting(EpsFigure::fiscalYear, EpsFigure::estimated, EpsFigure::eps)
+                .containsExactly(
+                        tuple(2024, false, new BigDecimal("2573")),
+                        tuple(2025, false, new BigDecimal("1238")),
+                        tuple(2026, true, new BigDecimal("428")),
+                        tuple(2027, true, new BigDecimal("1684")),
+                        tuple(2028, true, new BigDecimal("2454"))
+                );
+    }
+
+    @Test
+    @DisplayName("세로형: 헤더에 다른 표의 떠돌이 연도 토큰이 섞여도 열이 맞는 쪽으로 짝짓는다")
+    void shouldIgnoreStrayYearTokenFromNeighborTable() {
+        EpsExtraction extraction = parser.parse(fixture("eps-vertical-stray-year-header.txt"));
+
+        assertThat(extraction.status()).isEqualTo(EpsExtractionStatus.EXTRACTED);
+        assertThat(extraction.figures())
+                .extracting(EpsFigure::fiscalYear, EpsFigure::estimated, EpsFigure::eps)
+                .containsExactly(
+                        tuple(2024, false, new BigDecimal("1292")),
+                        tuple(2025, false, new BigDecimal("2764")),
+                        tuple(2026, true, new BigDecimal("3172")),
+                        tuple(2027, true, new BigDecimal("3462")),
+                        tuple(2028, true, new BigDecimal("3690"))
+                );
+    }
+
+    @Test
     @DisplayName("가로형: 헤더의 EPS 열 위치로 연도 행마다 값을 뽑는다")
     void shouldParseHorizontalTable() {
         EpsExtraction extraction = parser.parse(fixture("eps-horizontal.txt"));

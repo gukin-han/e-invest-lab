@@ -21,7 +21,7 @@ public class EpsSummaryTableParser {
     private static final Pattern NUMBER = Pattern.compile("[-△(]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?\\)?");
     private static final Pattern PARENTHESIZED = Pattern.compile("\\(.*\\)");
 
-    private static final int YEAR_HEADER_LOOKBACK = 10;
+    private static final int YEAR_HEADER_LOOKBACK = 20;
     private static final int DATA_ROW_LOOKAHEAD = 14;
     private static final int PAIR_TOLERANCE = 10;
     private static final int INDEX_CHECK_TOLERANCE = 20;
@@ -61,23 +61,16 @@ public class EpsSummaryTableParser {
 
     private List<Token> findYearHeaderAbove(List<List<Token>> lines, int epsRowIndex) {
         for (int i = epsRowIndex - 1; i >= Math.max(0, epsRowIndex - YEAR_HEADER_LOOKBACK); i--) {
-            List<Token> years = dedupeKeepingLeftmost(years(lines.get(i)));
-            if (years.size() >= 2) {
+            List<Token> years = years(lines.get(i));
+            if (distinctFiscalYears(years) >= 2) {
                 return years;
             }
         }
         return List.of();
     }
 
-    private List<Token> dedupeKeepingLeftmost(List<Token> years) {
-        Set<Integer> seen = new HashSet<>();
-        List<Token> unique = new ArrayList<>();
-        for (Token year : years) {
-            if (seen.add(fiscalYearOf(year))) {
-                unique.add(year);
-            }
-        }
-        return unique;
+    private long distinctFiscalYears(List<Token> years) {
+        return years.stream().map(this::fiscalYearOf).distinct().count();
     }
 
     private int fiscalYearOf(Token yearToken) {
@@ -99,20 +92,30 @@ public class EpsSummaryTableParser {
                 }
             }
         }
-        candidates.sort(Comparator.comparingInt(Pair::distance));
+        candidates.sort(Comparator.comparingInt(Pair::distance)
+                .thenComparingInt(pair -> pair.year().endColumn()));
 
         Set<Token> used = new HashSet<>();
+        Set<Integer> usedFiscalYears = new HashSet<>();
         List<EpsFigure> figures = new ArrayList<>();
         for (Pair pair : candidates) {
-            if (used.contains(pair.year()) || used.contains(pair.number())) {
+            if (used.contains(pair.year()) || used.contains(pair.number())
+                    || usedFiscalYears.contains(fiscalYearOf(pair.year()))) {
                 continue;
             }
             used.add(pair.year());
             used.add(pair.number());
+            usedFiscalYears.add(fiscalYearOf(pair.year()));
             figures.add(toFigure(pair.year(), pair.number()));
         }
         figures.sort(Comparator.comparingInt(EpsFigure::fiscalYear));
-        return figures;
+        return requireIntegerEps(figures);
+    }
+
+    private List<EpsFigure> requireIntegerEps(List<EpsFigure> figures) {
+        boolean hasFraction = figures.stream()
+                .anyMatch(figure -> figure.eps().stripTrailingZeros().scale() > 0);
+        return hasFraction ? List.of() : figures;
     }
 
     private List<EpsFigure> parseHorizontal(List<List<Token>> lines, int headerIndex) {
@@ -137,7 +140,7 @@ public class EpsSummaryTableParser {
                 figures.add(toFigure(row.getFirst(), value));
             }
         }
-        return figures;
+        return requireIntegerEps(figures);
     }
 
     private Token pickValue(List<Token> numbers, int epsIndex, Token epsLabel) {
