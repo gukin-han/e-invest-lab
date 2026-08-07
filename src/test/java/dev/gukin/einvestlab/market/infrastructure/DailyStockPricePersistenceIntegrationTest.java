@@ -42,6 +42,22 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
     }
 
     @Test
+    @DisplayName("시계열 조회는 기간 안의 그 종목만 거래일 오름차순으로 준다")
+    void shouldFindSeriesWithinWindowOrdered() {
+        repository.upsertPrices(List.of(
+                price("005930", LocalDate.of(2026, 8, 4), 68_000),
+                price("005930", LocalDate.of(2026, 8, 6), 70_000),
+                price("005930", LocalDate.of(2026, 7, 1), 65_000),
+                price("000660", LocalDate.of(2026, 8, 5), 250_000)));
+
+        assertThat(repository.findSeries("005930", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31)))
+                .extracting(DailyStockPrice::getTradeDate, DailyStockPrice::getClosePrice)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 8, 4), 68_000),
+                        org.assertj.core.groups.Tuple.tuple(LocalDate.of(2026, 8, 6), 70_000));
+    }
+
+    @Test
     @DisplayName("최근 시세는 거래일 기준 가장 늦은 행이다")
     void shouldFindLatestByTradeDate() {
         repository.upsertPrices(List.of(

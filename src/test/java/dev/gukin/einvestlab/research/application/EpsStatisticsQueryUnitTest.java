@@ -150,5 +150,10 @@ class EpsStatisticsQueryUnitTest {
         public Optional<DailyStockPrice> findLatestByStockCode(String stockCode) {
             return Optional.ofNullable(latest);
         }
+
+        @Override
+        public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
+            return List.of();
+        }
     }
 }

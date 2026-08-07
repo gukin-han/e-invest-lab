@@ -97,5 +97,10 @@ class DailyStockPriceCollectUnitTest {
         public Optional<DailyStockPrice> findLatestByStockCode(String stockCode) {
             return Optional.empty();
         }
+
+        @Override
+        public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
+            return List.of();
+        }
     }
 }

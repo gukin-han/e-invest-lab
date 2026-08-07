@@ -134,6 +134,7 @@
         <tr>
           <th>회계연도</th>
           <th class="num">평균 EPS</th>
+          <th class="num">전년 대비</th>
           <th class="num">표본</th>
           <th class="num">범위</th>
           <th class="num">forward PER</th>
@@ -158,6 +159,11 @@
         <tbody></tbody>
       </table>
     </div>
+
+    <div class="section" id="compare-section" hidden>
+      <h2>컨센서스 vs 주가<span class="hint">기간 시작 = 0% · 선택 연도 컨센서스 변화율과 종가 변화율</span></h2>
+      <div class="chart-wrap"><canvas id="compare-chart" role="img" aria-label="컨센서스와 주가의 변화율 비교 차트"></canvas></div>
+    </div>
   </section>
 
   <section class="panel" id="detail-placeholder">
@@ -167,12 +173,25 @@
 
 <script>
 const won = n => n == null ? '—' : Number(n).toLocaleString('ko-KR');
+function yoy(prev, curr) {
+  if (prev <= 0 && curr > 0) return '흑전';
+  if (prev > 0 && curr <= 0) return '적전';
+  if (prev <= 0 && curr <= 0) return '적자지속';
+  const pct = (curr - prev) / prev * 100;
+  return (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+}
+function deltaClass(delta) {
+  if (delta == null || delta === '적자지속') return '';
+  if (delta === '흑전' || delta.startsWith('+')) return 'delta-up';
+  return 'delta-down';
+}
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const SERIES_VARS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
 
 let selectedStock = null;
 let selectedYear = null;
 let revisionChart = null;
+let compareChart = null;
 let currentDays = 7;
 
 async function api(path) {
@@ -217,17 +236,21 @@ async function selectStock(stockCode, companyName, tr) {
 
   const tbody = document.querySelector('#consensus-table tbody');
   tbody.replaceChildren();
-  for (const y of consensus.years) {
+  consensus.years.forEach((y, i) => {
+    const prev = i > 0 ? consensus.years[i - 1] : null;
+    const delta = prev != null && prev.fiscalYear === y.fiscalYear - 1
+        ? yoy(Number(prev.averageEps), Number(y.averageEps)) : null;
     const tr = document.createElement('tr');
     const epsClass = y.averageEps < 0 ? ' class="num delta-down"' : ' class="num"';
     tr.innerHTML = `
       <td>${y.fiscalYear}</td>
       <td${epsClass}>${won(y.averageEps)}</td>
+      <td class="num ${deltaClass(delta)}">${delta ?? '—'}</td>
       <td class="num">${y.sampleCount}</td>
       <td class="num">${won(y.minEps)} ~ ${won(y.maxEps)}</td>
       <td class="num">${y.forwardPer == null ? '—' : y.forwardPer + '배'}</td>`;
     tbody.appendChild(tr);
-  }
+  });
 
   const years = consensus.years.map(y => y.fiscalYear);
   const currentYear = new Date().getFullYear();
@@ -283,6 +306,8 @@ async function loadRevisions() {
     spanGaps: true,
   }));
 
+  await renderCompareChart(revisions);
+
   revisionChart?.destroy();
   revisionChart = new Chart(document.getElementById('revision-chart'), {
     type: 'line',
@@ -308,6 +333,111 @@ async function loadRevisions() {
         },
         y: {
           ticks: { color: css('--muted'), callback: v => won(v) },
+          grid: { color: css('--grid') },
+          border: { color: css('--baseline') },
+        },
+      },
+    },
+  });
+}
+
+async function renderCompareChart(revisions) {
+  const section = document.getElementById('compare-section');
+  compareChart?.destroy();
+  compareChart = null;
+  if (revisions.length === 0) {
+    section.hidden = true;
+    return;
+  }
+
+  const firstDate = revisions.map(r => r.publishedDate).sort()[0];
+  const today = new Date().toISOString().slice(0, 10);
+  const prices = await api(`/api/stocks/${selectedStock}/prices?from=${firstDate}&to=${today}`);
+  if (prices.length === 0) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+
+  const sorted = [...revisions].sort((a, b) => a.publishedDate.localeCompare(b.publishedDate));
+  const consensusByDate = new Map();
+  const brokerLatest = new Map();
+  for (const r of sorted) {
+    brokerLatest.set(r.broker, Number(r.eps));
+    const values = [...brokerLatest.values()];
+    consensusByDate.set(r.publishedDate, values.reduce((a, b) => a + b, 0) / values.length);
+  }
+
+  const labels = prices.map(p => p.tradeDate);
+  const consensusRaw = [];
+  let lastConsensus = null;
+  for (const date of labels) {
+    for (const [revDate, value] of consensusByDate) {
+      if (revDate <= date) lastConsensus = value;
+    }
+    consensusRaw.push(lastConsensus);
+  }
+  const priceRaw = prices.map(p => p.closePrice);
+
+  const consensusBase = consensusRaw.find(v => v != null);
+  const priceBase = priceRaw[0];
+  const pct = (v, base) => v == null ? null : (v / base - 1) * 100;
+  const consensusPct = consensusRaw.map(v => pct(v, consensusBase));
+  const pricePct = priceRaw.map(v => pct(v, priceBase));
+
+  compareChart = new Chart(document.getElementById('compare-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: `${selectedYear}년 컨센서스`,
+          data: consensusPct,
+          borderColor: css('--s1'),
+          backgroundColor: css('--s1'),
+          borderWidth: 2,
+          stepped: true,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          spanGaps: true,
+        },
+        {
+          label: '종가',
+          data: pricePct,
+          borderColor: css('--muted'),
+          backgroundColor: css('--muted'),
+          borderWidth: 2,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          pointHoverRadius: 5,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: css('--ink-2'), boxWidth: 12, boxHeight: 12, usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const raw = ctx.datasetIndex === 0 ? consensusRaw[ctx.dataIndex] : priceRaw[ctx.dataIndex];
+              if (ctx.parsed.y == null) return null;
+              const sign = ctx.parsed.y >= 0 ? '+' : '';
+              return `${ctx.dataset.label}: ${sign}${ctx.parsed.y.toFixed(1)}% (${won(Math.round(raw))}원)`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: css('--muted'), maxTicksLimit: 8 },
+          grid: { color: css('--grid') },
+          border: { color: css('--baseline') },
+        },
+        y: {
+          ticks: { color: css('--muted'), callback: v => (v >= 0 ? '+' : '') + v + '%' },
           grid: { color: css('--grid') },
           border: { color: css('--baseline') },
         },

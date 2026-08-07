@@ -5,6 +5,7 @@ import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,5 +24,10 @@ public class DailyStockPriceRepositoryAdapter implements DailyStockPriceReposito
     @Override
     public Optional<DailyStockPrice> findLatestByStockCode(String stockCode) {
         return jpa.findTopByStockCodeOrderByTradeDateDesc(stockCode);
+    }
+
+    @Override
+    public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
+        return jpa.findAllByStockCodeAndTradeDateBetweenOrderByTradeDateAsc(stockCode, from, to);
     }
 }
