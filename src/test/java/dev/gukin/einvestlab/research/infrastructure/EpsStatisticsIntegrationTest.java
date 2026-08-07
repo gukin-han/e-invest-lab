@@ -85,6 +85,25 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
+    @DisplayName("최근 커버리지 종목을 조회할 때")
+    class WhenFindingRecentlyCovered {
+
+        @Test
+        @DisplayName("종목별 리포트·증권사 수를 세되 중복 게시는 한 건으로, 기간 밖은 뺀다")
+        void shouldAggregateCoveragePerStock() {
+            assertThat(reportJpa.findRecentlyCovered(SINCE))
+                    .extracting(AnalystReportJpaRepository.CoveredStockRow::getStockCode,
+                            AnalystReportJpaRepository.CoveredStockRow::getReportCount,
+                            AnalystReportJpaRepository.CoveredStockRow::getBrokerCount,
+                            AnalystReportJpaRepository.CoveredStockRow::getLatestPublishedDate)
+                    .containsExactly(
+                            tuple(STOCK, 4L, 3L, LocalDate.of(2026, 8, 3)),
+                            tuple(OTHER_STOCK, 1L, 1L, LocalDate.of(2026, 8, 1))
+                    );
+        }
+    }
+
+    @Nested
     @DisplayName("리비전 추이를 조회할 때")
     class WhenFindingRevisions {
 

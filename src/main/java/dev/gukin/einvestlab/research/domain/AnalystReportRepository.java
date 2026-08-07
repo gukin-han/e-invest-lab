@@ -1,5 +1,6 @@
 package dev.gukin.einvestlab.research.domain;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface AnalystReportRepository {
@@ -11,4 +12,6 @@ public interface AnalystReportRepository {
     List<AnalystReport> findAllWithoutPdf();
 
     List<AnalystReport> findAllPendingEpsExtraction();
+
+    List<CoveredStock> findRecentlyCovered(LocalDate since);
 }

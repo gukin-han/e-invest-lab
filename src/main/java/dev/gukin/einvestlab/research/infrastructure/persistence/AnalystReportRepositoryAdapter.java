@@ -2,10 +2,12 @@ package dev.gukin.einvestlab.research.infrastructure.persistence;
 
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
+import dev.gukin.einvestlab.research.domain.CoveredStock;
 import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -32,5 +34,17 @@ public class AnalystReportRepositoryAdapter implements AnalystReportRepository {
     @Override
     public List<AnalystReport> findAllPendingEpsExtraction() {
         return jpa.findAllPendingEpsExtraction(EpsExtractionStatus.FAILED);
+    }
+
+    @Override
+    public List<CoveredStock> findRecentlyCovered(LocalDate since) {
+        return jpa.findRecentlyCovered(since).stream()
+                .map(row -> new CoveredStock(
+                        row.getStockCode(),
+                        row.getCompanyName(),
+                        row.getReportCount(),
+                        row.getBrokerCount(),
+                        row.getLatestPublishedDate()))
+                .toList();
     }
 }
