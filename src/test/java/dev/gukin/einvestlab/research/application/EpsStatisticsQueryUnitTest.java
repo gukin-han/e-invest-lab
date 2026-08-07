@@ -1,31 +1,40 @@
 package dev.gukin.einvestlab.research.application;
 
+import dev.gukin.einvestlab.global.id.Ids;
+import dev.gukin.einvestlab.market.domain.DailyStockPrice;
+import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
 import dev.gukin.einvestlab.research.domain.EpsConsensus;
-import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
+import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
 import dev.gukin.einvestlab.research.domain.EpsRevision;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 @DisplayName("EPS 통계 조회 서비스 단위 테스트")
 class EpsStatisticsQueryUnitTest {
 
-    private final RecordingRepository repository = new RecordingRepository();
-    private final EpsStatisticsQuery query = new EpsStatisticsQuery(repository);
+    private static final Instant BASE_TIME = Instant.parse("2026-08-07T03:00:00Z");
+
+    private final RecordingEstimateRepository estimateRepository = new RecordingEstimateRepository();
+    private final StubPriceRepository priceRepository = new StubPriceRepository();
+    private final EpsStatisticsQuery query = new EpsStatisticsQuery(estimateRepository, priceRepository);
 
     @Test
     @DisplayName("유효기간은 기준 시각의 한국 날짜에서 6개월 전이다")
     void shouldComputeSinceAsSixMonthsBeforeKoreanDate() {
-        query.consensus("016360", Instant.parse("2026-08-07T03:00:00Z"));
+        query.consensus("016360", BASE_TIME);
 
-        assertThat(repository.requestedSince).isEqualTo(LocalDate.of(2026, 2, 7));
-        assertThat(repository.requestedStockCode).isEqualTo("016360");
+        assertThat(estimateRepository.requestedSince).isEqualTo(LocalDate.of(2026, 2, 7));
+        assertThat(estimateRepository.requestedStockCode).isEqualTo("016360");
     }
 
     @Test
@@ -33,13 +42,79 @@ class EpsStatisticsQueryUnitTest {
     void shouldInterpretBaseTimeInKoreanZone() {
         query.consensus("016360", Instant.parse("2026-08-06T16:00:00Z"));
 
-        assertThat(repository.requestedSince).isEqualTo(LocalDate.of(2026, 2, 7));
+        assertThat(estimateRepository.requestedSince).isEqualTo(LocalDate.of(2026, 2, 7));
     }
 
-    private static class RecordingRepository implements EpsEstimateRepository {
+    @Test
+    @DisplayName("최근 종가를 연도 컨센서스로 나눠 forward PER 을 계산한다")
+    void shouldComputeForwardPerFromLatestClose() {
+        priceRepository.latest = price("016360", LocalDate.of(2026, 8, 6), 70_000);
+        estimateRepository.consensuses = List.of(
+                consensus(2026, "5000"),
+                consensus(2027, "8000"));
+
+        EpsConsensusResult result = query.consensus("016360", BASE_TIME);
+
+        assertThat(result.latestClosePrice()).isEqualTo(70_000);
+        assertThat(result.latestTradeDate()).isEqualTo(LocalDate.of(2026, 8, 6));
+        assertThat(result.years())
+                .extracting(EpsConsensusResult.YearlyConsensus::fiscalYear,
+                        EpsConsensusResult.YearlyConsensus::forwardPer)
+                .containsExactly(
+                        tuple(2026, new BigDecimal("14.00")),
+                        tuple(2027, new BigDecimal("8.75"))
+                );
+    }
+
+    @Test
+    @DisplayName("컨센서스가 0 이하(적자)면 PER 을 계산하지 않는다")
+    void shouldSkipPerForNonPositiveConsensus() {
+        priceRepository.latest = price("016360", LocalDate.of(2026, 8, 6), 70_000);
+        estimateRepository.consensuses = List.of(consensus(2026, "-1500"));
+
+        EpsConsensusResult result = query.consensus("016360", BASE_TIME);
+
+        assertThat(result.years().getFirst().forwardPer()).isNull();
+    }
+
+    @Test
+    @DisplayName("시세가 없으면 종가와 PER 없이 컨센서스만 준다")
+    void shouldReturnConsensusWithoutPerWhenPriceMissing() {
+        estimateRepository.consensuses = List.of(consensus(2026, "5000"));
+
+        EpsConsensusResult result = query.consensus("016360", BASE_TIME);
+
+        assertThat(result.latestClosePrice()).isNull();
+        assertThat(result.latestTradeDate()).isNull();
+        assertThat(result.years().getFirst().averageEps()).isEqualByComparingTo("5000");
+        assertThat(result.years().getFirst().forwardPer()).isNull();
+    }
+
+    private EpsConsensus consensus(int fiscalYear, String averageEps) {
+        return new EpsConsensus(fiscalYear, new BigDecimal(averageEps), 3,
+                new BigDecimal(averageEps), new BigDecimal(averageEps));
+    }
+
+    private DailyStockPrice price(String stockCode, LocalDate tradeDate, int closePrice) {
+        return DailyStockPrice.builder()
+                .id(Ids.generate())
+                .stockCode(stockCode)
+                .tradeDate(tradeDate)
+                .marketCategory("KOSPI")
+                .openPrice(closePrice)
+                .highPrice(closePrice)
+                .lowPrice(closePrice)
+                .closePrice(closePrice)
+                .volume(1_000L)
+                .collectedAt(BASE_TIME)
+                .build();
+    }
+
+    private static class RecordingEstimateRepository implements EpsEstimateRepository {
 
         private String requestedStockCode;
         private LocalDate requestedSince;
+        private List<EpsConsensus> consensuses = List.of();
 
         @Override
         public void saveAll(List<EpsEstimate> estimates) {
@@ -49,12 +124,27 @@ class EpsStatisticsQueryUnitTest {
         public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
             this.requestedStockCode = stockCode;
             this.requestedSince = since;
-            return List.of();
+            return consensuses;
         }
 
         @Override
         public List<EpsRevision> findRevisions(String stockCode, int fiscalYear) {
             return List.of();
+        }
+    }
+
+    private static class StubPriceRepository implements DailyStockPriceRepository {
+
+        private DailyStockPrice latest;
+
+        @Override
+        public int upsertPrices(List<DailyStockPrice> prices) {
+            return prices.size();
+        }
+
+        @Override
+        public Optional<DailyStockPrice> findLatestByStockCode(String stockCode) {
+            return Optional.ofNullable(latest);
         }
     }
 }

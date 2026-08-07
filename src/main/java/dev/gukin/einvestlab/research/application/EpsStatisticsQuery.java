@@ -1,6 +1,6 @@
 package dev.gukin.einvestlab.research.application;
 
-import dev.gukin.einvestlab.research.domain.EpsConsensus;
+import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
 import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
 import dev.gukin.einvestlab.research.domain.EpsRevision;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +19,14 @@ public class EpsStatisticsQuery {
     private static final int VALID_MONTHS = 6;
 
     private final EpsEstimateRepository estimateRepository;
+    private final DailyStockPriceRepository priceRepository;
 
-    public List<EpsConsensus> consensus(String stockCode, Instant baseTime) {
+    public EpsConsensusResult consensus(String stockCode, Instant baseTime) {
         LocalDate since = LocalDate.ofInstant(baseTime, KOREA).minusMonths(VALID_MONTHS);
-        return estimateRepository.findConsensus(stockCode, since);
+        return EpsConsensusResult.of(
+                stockCode,
+                priceRepository.findLatestByStockCode(stockCode).orElse(null),
+                estimateRepository.findConsensus(stockCode, since));
     }
 
     public List<EpsRevision> revisions(String stockCode, int fiscalYear) {

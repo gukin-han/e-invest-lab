@@ -1,24 +1,46 @@
 package dev.gukin.einvestlab.research.interfaces.web.dto;
 
-import dev.gukin.einvestlab.research.domain.EpsConsensus;
+import dev.gukin.einvestlab.research.application.EpsConsensusResult;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.List;
 
 public record EpsConsensusResponse(
-        int fiscalYear,
-        BigDecimal averageEps,
-        long sampleCount,
-        BigDecimal minEps,
-        BigDecimal maxEps
+        String stockCode,
+        Integer latestClosePrice,
+        LocalDate latestTradeDate,
+        List<YearlyConsensusResponse> years
 ) {
 
-    public static EpsConsensusResponse from(EpsConsensus consensus) {
+    public record YearlyConsensusResponse(
+            int fiscalYear,
+            BigDecimal averageEps,
+            long sampleCount,
+            BigDecimal minEps,
+            BigDecimal maxEps,
+            BigDecimal forwardPer
+    ) {
+    }
+
+    public static EpsConsensusResponse from(EpsConsensusResult result) {
         return new EpsConsensusResponse(
-                consensus.fiscalYear(),
-                consensus.averageEps().setScale(0, RoundingMode.HALF_UP),
-                consensus.sampleCount(),
-                consensus.minEps().setScale(0, RoundingMode.HALF_UP),
-                consensus.maxEps().setScale(0, RoundingMode.HALF_UP));
+                result.stockCode(),
+                result.latestClosePrice(),
+                result.latestTradeDate(),
+                result.years().stream()
+                        .map(EpsConsensusResponse::fromYear)
+                        .toList());
+    }
+
+    private static YearlyConsensusResponse fromYear(EpsConsensusResult.YearlyConsensus year) {
+        return new YearlyConsensusResponse(
+                year.fiscalYear(),
+                year.averageEps().setScale(0, RoundingMode.HALF_UP),
+                year.sampleCount(),
+                year.minEps().setScale(0, RoundingMode.HALF_UP),
+                year.maxEps().setScale(0, RoundingMode.HALF_UP),
+                year.forwardPer());
     }
 }

@@ -21,10 +21,8 @@ public class EpsStatisticsController {
     private final Clock clock;
 
     @GetMapping("/api/stocks/{stockCode}/eps-consensus")
-    public ApiResponse<List<EpsConsensusResponse>> consensus(@PathVariable String stockCode) {
-        return ApiResponse.of(statisticsQuery.consensus(stockCode, clock.instant()).stream()
-                .map(EpsConsensusResponse::from)
-                .toList());
+    public ApiResponse<EpsConsensusResponse> consensus(@PathVariable String stockCode) {
+        return ApiResponse.of(EpsConsensusResponse.from(statisticsQuery.consensus(stockCode, clock.instant())));
     }
 
     @GetMapping("/api/stocks/{stockCode}/eps-revisions")
