@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DailyStockPriceSourceAdapter implements DailyStockPriceSource {
 
-    private static final int PAGE_SIZE = 1_000;
+    private static final int PAGE_SIZE = 5_000;
     private static final Duration PAGE_DELAY = Duration.ofSeconds(1);
     private static final DateTimeFormatter FSC_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
