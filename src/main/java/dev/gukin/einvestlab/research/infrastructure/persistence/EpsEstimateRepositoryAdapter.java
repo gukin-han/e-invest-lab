@@ -22,6 +22,11 @@ public class EpsEstimateRepositoryAdapter implements EpsEstimateRepository {
     }
 
     @Override
+    public void deleteAllByReportIdx(long reportIdx) {
+        jpa.deleteAllByReportIdx(reportIdx);
+    }
+
+    @Override
     public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
         return jpa.findConsensus(stockCode, since).stream()
                 .map(row -> new EpsConsensus(

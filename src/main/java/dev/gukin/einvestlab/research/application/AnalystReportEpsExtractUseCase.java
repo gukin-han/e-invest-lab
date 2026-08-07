@@ -60,6 +60,15 @@ public class AnalystReportEpsExtractUseCase {
     }
 
     private EpsExtractionStatus extractOne(AnalystReport report, Instant baseTime) {
+        if (!pdfStore.exists(report.getPdfPath())) {
+            log.warn("PDF 파일 유실 — 재다운로드 대상으로 되돌림 (report_idx={}, path={})",
+                    report.getReportIdx(), report.getPdfPath());
+            reportTransaction.executeWithoutResult(tx -> {
+                report.detachPdf();
+                reportRepository.save(report);
+            });
+            return EpsExtractionStatus.FAILED;
+        }
         EpsExtraction extraction;
         try {
             extraction = applyGuards(epsExtractor.extract(pdfStore.resolve(report.getPdfPath())), report);
@@ -96,6 +105,7 @@ public class AnalystReportEpsExtractUseCase {
     private void save(AnalystReport report, EpsExtraction extraction, Instant baseTime) {
         reportTransaction.executeWithoutResult(tx -> {
             if (extraction.status() == EpsExtractionStatus.EXTRACTED) {
+                estimateRepository.deleteAllByReportIdx(report.getReportIdx());
                 estimateRepository.saveAll(extraction.figures().stream()
                         .map(figure -> toEstimate(report, figure, baseTime))
                         .toList());

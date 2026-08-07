@@ -36,8 +36,9 @@ class AnalystReportEpsExtractUnitTest {
     private final StubAnalystReportRepository reportRepository = new StubAnalystReportRepository();
     private final StubEstimateRepository estimateRepository = new StubEstimateRepository();
     private final StubExtractor extractor = new StubExtractor();
+    private final StubPdfStore pdfStore = new StubPdfStore();
     private final AnalystReportEpsExtractUseCase useCase = new AnalystReportEpsExtractUseCase(
-            reportRepository, estimateRepository, new StubPdfStore(), extractor,
+            reportRepository, estimateRepository, pdfStore, extractor,
             new RecordingTransactionManager());
 
     @Test
@@ -114,6 +115,33 @@ class AnalystReportEpsExtractUnitTest {
     }
 
     @Test
+    @DisplayName("PDF 파일이 유실됐으면 경로를 비워 재다운로드 대상으로 되돌린다")
+    void shouldDetachPdfWhenFileMissing() {
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
+        pdfStore.missingPath = "2026/08/1.pdf";
+
+        AnalystReportEpsExtractResult result = useCase.extractAll(BASE_TIME);
+
+        assertThat(result).isEqualTo(new AnalystReportEpsExtractResult(0, 0, 1));
+        assertThat(reportRepository.saved.getFirst().getPdfPath()).isNull();
+        assertThat(estimateRepository.saved).isEmpty();
+    }
+
+    @Test
+    @DisplayName("재추출이 성공하면 같은 리포트의 기존 추정치를 지우고 새로 넣는다")
+    void shouldReplaceExistingEstimatesOnReExtraction() {
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
+        extractor.results.put(1L, EpsExtraction.extracted(List.of(
+                new EpsFigure(2026, true, new BigDecimal("5000")),
+                new EpsFigure(2027, true, new BigDecimal("5500")))));
+
+        useCase.extractAll(BASE_TIME);
+
+        assertThat(estimateRepository.deletedReportIdxes).containsExactly(1L);
+        assertThat(estimateRepository.saved).hasSize(2);
+    }
+
+    @Test
     @DisplayName("같은 연도가 두 번 나오면 저장하지 않고 실패로 기록한다")
     void shouldFailOnDuplicateFiscalYear() {
         reportRepository.pendingEpsExtraction = List.of(report(1L));
@@ -164,6 +192,8 @@ class AnalystReportEpsExtractUnitTest {
 
     private static class StubPdfStore implements AnalystReportPdfStore {
 
+        private String missingPath;
+
         @Override
         public String store(long reportIdx, LocalDate publishedDate, byte[] content) {
             throw new UnsupportedOperationException();
@@ -173,15 +203,26 @@ class AnalystReportEpsExtractUnitTest {
         public Path resolve(String relativePath) {
             return Path.of("/storage-root").resolve(relativePath);
         }
+
+        @Override
+        public boolean exists(String relativePath) {
+            return !relativePath.equals(missingPath);
+        }
     }
 
     private static class StubEstimateRepository implements EpsEstimateRepository {
 
         private final List<EpsEstimate> saved = new ArrayList<>();
+        private final List<Long> deletedReportIdxes = new ArrayList<>();
 
         @Override
         public void saveAll(List<EpsEstimate> estimates) {
             saved.addAll(estimates);
+        }
+
+        @Override
+        public void deleteAllByReportIdx(long reportIdx) {
+            deletedReportIdxes.add(reportIdx);
         }
 
         @Override

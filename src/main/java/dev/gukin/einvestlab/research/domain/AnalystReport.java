@@ -84,6 +84,10 @@ public class AnalystReport {
         this.pdfPath = pdfPath;
     }
 
+    public void detachPdf() {
+        this.pdfPath = null;
+    }
+
     public void recordEpsExtraction(EpsExtractionStatus status) {
         this.epsExtractionStatus = status;
     }

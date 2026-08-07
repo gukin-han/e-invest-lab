@@ -8,4 +8,6 @@ public interface AnalystReportPdfStore {
     String store(long reportIdx, LocalDate publishedDate, byte[] content);
 
     Path resolve(String relativePath);
+
+    boolean exists(String relativePath);
 }

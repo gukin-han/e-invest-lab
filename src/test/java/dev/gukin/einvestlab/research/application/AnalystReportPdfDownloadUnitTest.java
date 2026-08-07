@@ -106,6 +106,11 @@ class AnalystReportPdfDownloadUnitTest {
         public Path resolve(String relativePath) {
             return Path.of("/storage-root").resolve(relativePath);
         }
+
+        @Override
+        public boolean exists(String relativePath) {
+            return true;
+        }
     }
 
 }

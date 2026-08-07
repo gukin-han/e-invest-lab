@@ -35,4 +35,9 @@ public class AnalystReportPdfStoreAdapter implements AnalystReportPdfStore {
     public Path resolve(String relativePath) {
         return Path.of(properties.root()).resolve(relativePath);
     }
+
+    @Override
+    public boolean exists(String relativePath) {
+        return Files.exists(resolve(relativePath));
+    }
 }

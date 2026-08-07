@@ -121,6 +121,10 @@ class EpsStatisticsQueryUnitTest {
         }
 
         @Override
+        public void deleteAllByReportIdx(long reportIdx) {
+        }
+
+        @Override
         public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
             this.requestedStockCode = stockCode;
             this.requestedSince = since;

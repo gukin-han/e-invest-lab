@@ -12,6 +12,8 @@ import java.util.UUID;
 
 public interface EpsEstimateJpaRepository extends JpaRepository<EpsEstimate, UUID> {
 
+    void deleteAllByReportIdx(long reportIdx);
+
     interface ConsensusRow {
         Integer getFiscalYear();
 
