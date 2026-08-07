@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-invest-lab 리서치 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --up: #006300;
+    --down: #d03b3b;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --up: #0ca30c;
+      --down: #d03b3b;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    padding: 20px;
+  }
+  header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+  header h1 { font-size: 18px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .filters { display: flex; gap: 6px; margin-left: auto; }
+  .filters button {
+    font: inherit; font-size: 13px; padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--ink-2); cursor: pointer;
+  }
+  .filters button.active { color: var(--ink); font-weight: 700; border-color: var(--baseline); }
+  .layout { display: grid; grid-template-columns: 400px 1fr; gap: 16px; align-items: start; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .panel h2 { font-size: 14px; margin-bottom: 10px; }
+  .panel h2 .hint { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; color: var(--muted); font-weight: 500;
+    padding: 6px 8px; border-bottom: 1px solid var(--baseline);
+  }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--grid); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  #stock-table tbody tr { cursor: pointer; }
+  #stock-table tbody tr:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  #stock-table tbody tr.selected { background: color-mix(in srgb, var(--s1) 12%, transparent); }
+  .detail-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .detail-header .name { font-size: 17px; font-weight: 700; }
+  .detail-header .code { color: var(--muted); font-size: 13px; }
+  .detail-header .price { margin-left: auto; font-size: 17px; font-weight: 700; }
+  .detail-header .price-date { color: var(--muted); font-size: 12px; }
+  .section { margin-top: 18px; }
+  .year-chips { display: inline-flex; gap: 6px; margin-left: 10px; }
+  .year-chips button {
+    font: inherit; font-size: 12px; padding: 2px 10px;
+    border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface); color: var(--ink-2); cursor: pointer;
+  }
+  .year-chips button.active { color: var(--ink); font-weight: 700; border-color: var(--baseline); }
+  .chart-wrap { position: relative; height: 300px; margin-top: 8px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+  .delta-up { color: var(--up); }
+  .delta-down { color: var(--down); }
+</style>
+</head>
+<body>
+<header>
+  <h1>리서치 대시보드</h1>
+  <span class="sub">애널리스트 리포트 EPS 컨센서스 · 리비전 · forward PER</span>
+  <nav class="filters" id="days-filter" aria-label="조회 기간">
+    <button data-days="7" class="active">최근 7일</button>
+    <button data-days="30">30일</button>
+    <button data-days="90">90일</button>
+  </nav>
+</header>
+
+<div class="layout">
+  <section class="panel">
+    <h2>최근 커버리지 종목<span class="hint">리포트가 발행된 순</span></h2>
+    <table id="stock-table">
+      <thead>
+      <tr>
+        <th>회사</th>
+        <th class="num">리포트</th>
+        <th class="num">증권사</th>
+        <th class="num">최근 발행</th>
+      </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="list-empty" hidden>기간 내 발행된 리포트가 없습니다</div>
+  </section>
+
+  <section class="panel" id="detail" hidden>
+    <div class="detail-header">
+      <span class="name" id="d-name"></span>
+      <span class="code" id="d-code"></span>
+      <span class="price" id="d-price"></span>
+      <span class="price-date" id="d-price-date"></span>
+    </div>
+
+    <div class="section">
+      <h2>연도별 EPS 컨센서스<span class="hint">증권사별 최신 추정치 평균 · 최근 6개월</span></h2>
+      <table id="consensus-table">
+        <thead>
+        <tr>
+          <th>회계연도</th>
+          <th class="num">평균 EPS</th>
+          <th class="num">표본</th>
+          <th class="num">범위</th>
+          <th class="num">forward PER</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2 style="display:inline-block">EPS 리비전 추이<span class="hint">발행일 × 추정치, 증권사별</span></h2>
+      <span class="year-chips" id="year-chips"></span>
+      <div class="chart-wrap"><canvas id="revision-chart" role="img" aria-label="증권사별 EPS 리비전 추이 차트"></canvas></div>
+      <table id="revision-table" style="margin-top:10px">
+        <thead>
+        <tr>
+          <th>발행일</th>
+          <th>증권사</th>
+          <th class="num">EPS (원)</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="detail-placeholder">
+    <div class="empty">왼쪽 목록에서 종목을 선택하세요</div>
+  </section>
+</div>
+
+<script>
+const won = n => n == null ? '—' : Number(n).toLocaleString('ko-KR');
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SERIES_VARS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+
+let selectedStock = null;
+let selectedYear = null;
+let revisionChart = null;
+let currentDays = 7;
+
+async function api(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(path + ' -> HTTP ' + response.status);
+  return (await response.json()).data;
+}
+
+async function loadList() {
+  const rows = await api(`/api/stocks/recently-covered?days=${currentDays}`);
+  const tbody = document.querySelector('#stock-table tbody');
+  tbody.replaceChildren();
+  document.getElementById('list-empty').hidden = rows.length > 0;
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    tr.dataset.stockCode = row.stockCode;
+    tr.dataset.companyName = row.companyName;
+    tr.innerHTML = `
+      <td>${row.companyName}<span style="color:var(--muted)"> ${row.stockCode}</span></td>
+      <td class="num">${row.reportCount}</td>
+      <td class="num">${row.brokerCount}</td>
+      <td class="num">${row.latestPublishedDate.slice(5)}</td>`;
+    tr.addEventListener('click', () => selectStock(row.stockCode, row.companyName, tr));
+    tbody.appendChild(tr);
+  }
+}
+
+async function selectStock(stockCode, companyName, tr) {
+  selectedStock = stockCode;
+  document.querySelectorAll('#stock-table tbody tr').forEach(r => r.classList.remove('selected'));
+  tr?.classList.add('selected');
+  document.getElementById('detail-placeholder').hidden = true;
+  document.getElementById('detail').hidden = false;
+  document.getElementById('d-name').textContent = companyName;
+  document.getElementById('d-code').textContent = stockCode;
+
+  const consensus = await api(`/api/stocks/${stockCode}/eps-consensus`);
+  document.getElementById('d-price').textContent =
+      consensus.latestClosePrice == null ? '' : won(consensus.latestClosePrice) + '원';
+  document.getElementById('d-price-date').textContent =
+      consensus.latestTradeDate == null ? '' : consensus.latestTradeDate + ' 종가';
+
+  const tbody = document.querySelector('#consensus-table tbody');
+  tbody.replaceChildren();
+  for (const y of consensus.years) {
+    const tr = document.createElement('tr');
+    const epsClass = y.averageEps < 0 ? ' class="num delta-down"' : ' class="num"';
+    tr.innerHTML = `
+      <td>${y.fiscalYear}</td>
+      <td${epsClass}>${won(y.averageEps)}</td>
+      <td class="num">${y.sampleCount}</td>
+      <td class="num">${won(y.minEps)} ~ ${won(y.maxEps)}</td>
+      <td class="num">${y.forwardPer == null ? '—' : y.forwardPer + '배'}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  const years = consensus.years.map(y => y.fiscalYear);
+  const currentYear = new Date().getFullYear();
+  selectedYear = years.includes(currentYear) ? currentYear : years[years.length - 1];
+  renderYearChips(years);
+  await loadRevisions();
+}
+
+function renderYearChips(years) {
+  const wrap = document.getElementById('year-chips');
+  wrap.replaceChildren();
+  for (const year of years) {
+    const button = document.createElement('button');
+    button.textContent = year;
+    button.classList.toggle('active', year === selectedYear);
+    button.addEventListener('click', async () => {
+      selectedYear = year;
+      renderYearChips(years);
+      await loadRevisions();
+    });
+    wrap.appendChild(button);
+  }
+}
+
+async function loadRevisions() {
+  const revisions = await api(`/api/stocks/${selectedStock}/eps-revisions?fiscalYear=${selectedYear}`);
+
+  const tbody = document.querySelector('#revision-table tbody');
+  tbody.replaceChildren();
+  for (const r of revisions) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.publishedDate}</td><td>${r.broker}</td>
+      <td class="num${r.eps < 0 ? ' delta-down' : ''}">${won(r.eps)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  const dates = [...new Set(revisions.map(r => r.publishedDate))].sort();
+  const brokers = [...new Set(revisions.map(r => r.broker))].sort((a, b) => a.localeCompare(b, 'ko'));
+  const shown = brokers.slice(0, 8);
+  const byBroker = new Map(shown.map(b => [b, new Map()]));
+  for (const r of revisions) {
+    if (byBroker.has(r.broker)) byBroker.get(r.broker).set(r.publishedDate, Number(r.eps));
+  }
+
+  const datasets = shown.map((broker, i) => ({
+    label: broker,
+    data: dates.map(d => byBroker.get(broker).get(d) ?? null),
+    borderColor: css(SERIES_VARS[i]),
+    backgroundColor: css(SERIES_VARS[i]),
+    borderWidth: 2,
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    spanGaps: true,
+  }));
+
+  revisionChart?.destroy();
+  revisionChart = new Chart(document.getElementById('revision-chart'), {
+    type: 'line',
+    data: { labels: dates, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: {
+          display: datasets.length >= 2,
+          labels: { color: css('--ink-2'), boxWidth: 12, boxHeight: 12, usePointStyle: true },
+        },
+        tooltip: {
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${won(ctx.parsed.y)}원` },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: css('--muted') },
+          grid: { color: css('--grid') },
+          border: { color: css('--baseline') },
+        },
+        y: {
+          ticks: { color: css('--muted'), callback: v => won(v) },
+          grid: { color: css('--grid') },
+          border: { color: css('--baseline') },
+        },
+      },
+    },
+  });
+}
+
+document.getElementById('days-filter').addEventListener('click', async event => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  currentDays = Number(button.dataset.days);
+  document.querySelectorAll('#days-filter button').forEach(b =>
+      b.classList.toggle('active', b === button));
+  await loadList();
+});
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (selectedStock && selectedYear) loadRevisions();
+});
+
+Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+loadList();
+</script>
+</body>
+</html>
