@@ -157,5 +157,10 @@ class BusinessContentCollectUnitTest {
         public List<BusinessContent> findAllPendingOfferingExtraction() {
             return List.of();
         }
+
+        @Override
+        public java.util.Optional<BusinessContent> findByFilingNumber(String filingNumber) {
+            return java.util.Optional.empty();
+        }
     }
 }

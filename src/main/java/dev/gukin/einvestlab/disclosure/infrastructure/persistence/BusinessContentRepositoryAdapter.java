@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -27,5 +28,10 @@ public class BusinessContentRepositoryAdapter implements BusinessContentReposito
     @Override
     public List<BusinessContent> findAllPendingOfferingExtraction() {
         return jpa.findAllPendingOfferingExtraction(OfferingExtractionStatus.FAILED);
+    }
+
+    @Override
+    public Optional<BusinessContent> findByFilingNumber(String filingNumber) {
+        return jpa.findByFilingNumber(filingNumber);
     }
 }

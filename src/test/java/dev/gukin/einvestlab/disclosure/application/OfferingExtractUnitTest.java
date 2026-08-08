@@ -34,10 +34,11 @@ class OfferingExtractUnitTest {
     private final StubContentRepository contentRepository = new StubContentRepository();
     private final StubOfferingRepository offeringRepository = new StubOfferingRepository();
     private final StubExtractor extractor = new StubExtractor();
+    private final OfferingResultRecorder recorder = new OfferingResultRecorder(
+            contentRepository, offeringRepository, new RecordingTransactionManager());
     private final OfferingExtractUseCase useCase = new OfferingExtractUseCase(
-            contentRepository, offeringRepository, content -> content, extractor, new OfferingGuard(),
-            new OfferingExtractionProperties(List.of("mini", "full")),
-            new RecordingTransactionManager());
+            contentRepository, recorder, content -> content, extractor, new OfferingGuard(),
+            new OfferingExtractionProperties(List.of("mini", "full")));
 
     @Test
     @DisplayName("1차 모델이 가드를 통과하면 교체 저장하고 상태를 기록한다")
@@ -125,6 +126,13 @@ class OfferingExtractUnitTest {
         @Override
         public List<BusinessContent> findAllPendingOfferingExtraction() {
             return pending;
+        }
+
+        @Override
+        public java.util.Optional<BusinessContent> findByFilingNumber(String filingNumber) {
+            return pending.stream()
+                    .filter(content -> content.getFilingNumber().equals(filingNumber))
+                    .findFirst();
         }
     }
 

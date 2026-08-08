@@ -7,11 +7,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface BusinessContentJpaRepository extends JpaRepository<BusinessContent, UUID> {
 
     boolean existsByFilingNumber(String filingNumber);
+
+    Optional<BusinessContent> findByFilingNumber(String filingNumber);
 
     @Query("""
             select c from BusinessContent c

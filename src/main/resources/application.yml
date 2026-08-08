@@ -50,8 +50,8 @@ openai:
     base-url: https://api.openai.com/v1
     key: ${OPENAI_API_KEY:}
 
+# 에스컬레이션은 실패 분석 후 명시적으로 (배치 2라운드에서 model 파라미터로 지정)
 offering:
   extraction:
     models:
       - gpt-5-mini
-      - gpt-5
