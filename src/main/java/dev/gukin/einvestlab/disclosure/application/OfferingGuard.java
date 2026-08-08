@@ -136,7 +136,8 @@ public class OfferingGuard {
             if (draft.revenueShare() == null) {
                 continue;
             }
-            String key = draft.fiscalYear() + "/" + draft.businessPart() + "/" + draft.entityName();
+            String key = draft.fiscalYear() + "/" + draft.businessPart() + "/"
+                    + draft.entityName() + "/" + draft.revenueBasis();
             sums.merge(key, draft.revenueShare(), BigDecimal::add);
         }
         return sums.entrySet().stream()

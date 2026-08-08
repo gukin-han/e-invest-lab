@@ -76,6 +76,23 @@ class OfferingGuardUnitTest {
     }
 
     @Test
+    @DisplayName("기준(basis)이 다른 100% 파이 여러 개는 각자 그룹으로 세어 통과시킨다 — 금융 다중 구성비 표")
+    void shouldGroupShareSumsByRevenueBasis() {
+        String financialContent = """
+                수신 구성은 예수금 60.0%, 적금 40.0%이다.
+                대출채권 구성은 신용대출 70.0%, 담보대출 30.0%이다.
+                """;
+        OfferingGuardVerdict verdict = guard.verify(List.of(
+                basisShare("수신", "예수금", "60.0"),
+                basisShare("수신", "적금", "40.0"),
+                basisShare("대출채권", "신용대출", "70.0"),
+                basisShare("대출채권", "담보대출", "30.0")), financialContent);
+
+        assertThat(verdict.status()).isEqualTo(OfferingExtractionStatus.EXTRACTED);
+        assertThat(verdict.accepted()).hasSize(4);
+    }
+
+    @Test
     @DisplayName("같은 그룹의 비중 합이 115를 넘으면 실패로 판정한다")
     void shouldFailWhenShareSumExceedsLimit() {
         OfferingGuardVerdict verdict = guard.verify(List.of(
@@ -102,6 +119,11 @@ class OfferingGuardUnitTest {
         return new OfferingDraft(null, segment, null, products,
                 amount == null ? null : new BigDecimal(amount), unit, basis,
                 share == null ? null : new BigDecimal(share), customers, null, 2025);
+    }
+
+    private OfferingDraft basisShare(String basis, String product, String share) {
+        return new OfferingDraft(null, null, null, List.of(product), null, null, basis,
+                new BigDecimal(share), List.of(), null, 2025);
     }
 
     private OfferingDraft dupShare(String share) {
