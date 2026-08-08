@@ -20,6 +20,9 @@ public class OfferingGuard {
             "매출", "매출액",
             "매출실적", "매출액");
     private static final BigDecimal SHARE_SUM_LIMIT = new BigDecimal("115");
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
+    private static final BigDecimal MULTI_PIE_TOLERANCE = new BigDecimal("15");
+    private static final String TEXT_SEGMENT_DELIMITERS = "[(),·・/~]";
 
     public OfferingGuardVerdict verify(List<OfferingDraft> drafts, String sourceContent) {
         if (drafts.isEmpty()) {
@@ -49,17 +52,25 @@ public class OfferingGuard {
 
         String haystack = normalize(sourceContent);
         for (OfferingDraft draft : kept) {
-            List<String> missing = missingEvidence(draft, haystack);
-            if (!missing.isEmpty()) {
-                issues.add("원문 부재(환각 의심): " + missing);
+            EvidenceResult evidence = checkEvidence(draft, haystack);
+            if (!evidence.missing().isEmpty()) {
+                issues.add("원문 부재(환각 의심): " + evidence.missing());
                 return OfferingGuardVerdict.failed(issues);
+            }
+            if (!evidence.partial().isEmpty()) {
+                issues.add("부분 근거(의역 수용): " + evidence.partial());
+                corrected = true;
             }
         }
 
-        List<String> shareViolations = shareSumViolations(kept);
-        if (!shareViolations.isEmpty()) {
-            issues.add("비중 합 초과: " + shareViolations);
+        ShareSumCheck shareSums = checkShareSums(kept);
+        if (!shareSums.violations().isEmpty()) {
+            issues.add("비중 합 초과: " + shareSums.violations());
             return OfferingGuardVerdict.failed(issues);
+        }
+        if (!shareSums.multiPies().isEmpty()) {
+            issues.add("복수 파이 수용(구분 차원 결손): " + shareSums.multiPies());
+            corrected = true;
         }
 
         OfferingExtractionStatus status = corrected
@@ -86,17 +97,14 @@ public class OfferingGuard {
         return normalized == null ? draft : draft.withRevenueBasis(normalized);
     }
 
-    private List<String> missingEvidence(OfferingDraft draft, String haystack) {
+    private EvidenceResult checkEvidence(OfferingDraft draft, String haystack) {
         List<String> missing = new ArrayList<>();
+        List<String> partial = new ArrayList<>();
         for (String product : draft.products()) {
-            if (!haystack.contains(normalize(product))) {
-                missing.add("product=" + product);
-            }
+            classifyText("product=" + product, product, haystack, missing, partial);
         }
         for (String customer : draft.customers()) {
-            if (!haystack.contains(normalize(customer))) {
-                missing.add("customer=" + customer);
-            }
+            classifyText("customer=" + customer, customer, haystack, missing, partial);
         }
         if (draft.revenueAmount() != null && amountCandidates(draft.revenueAmount()).stream()
                 .noneMatch(haystack::contains)) {
@@ -106,13 +114,31 @@ public class OfferingGuard {
                 .noneMatch(haystack::contains)) {
             missing.add("share=" + draft.revenueShare());
         }
-        return missing;
+        return new EvidenceResult(missing, partial);
+    }
+
+    private void classifyText(String label, String value, String haystack,
+                              List<String> missing, List<String> partial) {
+        if (haystack.contains(normalize(value))) {
+            return;
+        }
+        for (String segment : value.split(TEXT_SEGMENT_DELIMITERS)) {
+            String normalized = normalize(segment);
+            if (normalized.length() >= 2 && haystack.contains(normalized)) {
+                partial.add(label);
+                return;
+            }
+        }
+        missing.add(label);
     }
 
     private List<String> amountCandidates(BigDecimal amount) {
         List<String> candidates = new ArrayList<>();
         BigDecimal stripped = amount.stripTrailingZeros();
         candidates.add(stripped.toPlainString());
+        if (stripped.signum() < 0) {
+            candidates.addAll(negativeNotations(stripped.abs().toPlainString()));
+        }
         if (stripped.scale() <= 0) {
             long value = stripped.longValueExact();
             if (value >= 10_000) {
@@ -125,12 +151,21 @@ public class OfferingGuard {
     }
 
     private List<String> shareCandidates(BigDecimal share) {
-        return List.of(
+        List<String> candidates = new ArrayList<>(List.of(
                 share.stripTrailingZeros().toPlainString(),
-                share.setScale(1, RoundingMode.HALF_UP).toPlainString());
+                share.setScale(1, RoundingMode.HALF_UP).toPlainString()));
+        if (share.signum() < 0) {
+            candidates.addAll(negativeNotations(share.abs().stripTrailingZeros().toPlainString()));
+            candidates.addAll(negativeNotations(share.abs().setScale(1, RoundingMode.HALF_UP).toPlainString()));
+        }
+        return candidates;
     }
 
-    private List<String> shareSumViolations(List<OfferingDraft> drafts) {
+    private List<String> negativeNotations(String absolute) {
+        return List.of("(" + absolute + ")", "△" + absolute, "▲" + absolute);
+    }
+
+    private ShareSumCheck checkShareSums(List<OfferingDraft> drafts) {
         Map<String, BigDecimal> sums = new HashMap<>();
         for (OfferingDraft draft : drafts) {
             if (draft.revenueShare() == null) {
@@ -140,10 +175,31 @@ public class OfferingGuard {
                     + draft.entityName() + "/" + draft.revenueBasis();
             sums.merge(key, draft.revenueShare(), BigDecimal::add);
         }
-        return sums.entrySet().stream()
-                .filter(entry -> entry.getValue().compareTo(SHARE_SUM_LIMIT) > 0)
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .toList();
+        List<String> violations = new ArrayList<>();
+        List<String> multiPies = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> entry : sums.entrySet()) {
+            BigDecimal sum = entry.getValue();
+            if (sum.compareTo(SHARE_SUM_LIMIT) <= 0) {
+                continue;
+            }
+            if (nearMultipleOfHundred(sum)) {
+                multiPies.add(entry.getKey() + "=" + sum);
+            } else {
+                violations.add(entry.getKey() + "=" + sum);
+            }
+        }
+        return new ShareSumCheck(violations, multiPies);
+    }
+
+    private boolean nearMultipleOfHundred(BigDecimal sum) {
+        BigDecimal nearest = sum.divide(HUNDRED, 0, RoundingMode.HALF_UP).multiply(HUNDRED);
+        return sum.subtract(nearest).abs().compareTo(MULTI_PIE_TOLERANCE) <= 0;
+    }
+
+    private record EvidenceResult(List<String> missing, List<String> partial) {
+    }
+
+    private record ShareSumCheck(List<String> violations, List<String> multiPies) {
     }
 
     private static String normalize(String text) {

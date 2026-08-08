@@ -105,6 +105,50 @@ class OfferingGuardUnitTest {
     }
 
     @Test
+    @DisplayName("의역 제품명은 원문 앵커 세그먼트가 있으면 교정 통과(CORRECTED)로 수용한다")
+    void shouldAcceptParaphrasedProductWithAnchorSegment() {
+        OfferingGuardVerdict verdict = guard.verify(List.of(
+                draft("DX", List.of("모니터(사무용 및 게이밍 라인업)"), null, null, "매출액", null, List.of())), CONTENT);
+
+        assertThat(verdict.status()).isEqualTo(OfferingExtractionStatus.CORRECTED);
+        assertThat(verdict.issues()).anySatisfy(issue -> assertThat(issue).contains("부분 근거"));
+    }
+
+    @Test
+    @DisplayName("모든 세그먼트가 원문에 없는 제품명은 여전히 실패다")
+    void shouldFailWhenNoSegmentAnchorsToSource() {
+        OfferingGuardVerdict verdict = guard.verify(List.of(
+                draft("DX", List.of("세탁기(드럼, 통돌이)"), null, null, "매출액", null, List.of())), CONTENT);
+
+        assertThat(verdict.status()).isEqualTo(OfferingExtractionStatus.FAILED);
+    }
+
+    @Test
+    @DisplayName("회계 음수 표기 (567,779)·△16.2 를 음수 값의 근거로 인정한다")
+    void shouldMatchAccountingNegativeNotation() {
+        String accountingContent = "해외법인 매출은 (567,779)백만원, 비중은 △16.2%로 감소했다. 라면 사업이 주력이다.";
+        OfferingGuardVerdict verdict = guard.verify(List.of(
+                draft("해외", List.of("라면"), "-567779", "백만원", "매출액", "-16.2", List.of())), accountingContent);
+
+        assertThat(verdict.passed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("구분 차원이 비어 합쳐진 100% 파이 여러 개(합이 100의 배수 근처)는 교정 통과로 수용한다")
+    void shouldAcceptCollapsedMultiplePies() {
+        String yearlessContent = """
+                당기 서치플랫폼 60.0%, 커머스 40.0%.
+                전기 서치플랫폼 55.0%, 커머스 45.0%.
+                """;
+        OfferingGuardVerdict verdict = guard.verify(List.of(
+                yearlessShare("서치플랫폼", "60.0"), yearlessShare("커머스", "40.0"),
+                yearlessShare("서치플랫폼", "55.0"), yearlessShare("커머스", "45.0")), yearlessContent);
+
+        assertThat(verdict.status()).isEqualTo(OfferingExtractionStatus.CORRECTED);
+        assertThat(verdict.issues()).anySatisfy(issue -> assertThat(issue).contains("복수 파이"));
+    }
+
+    @Test
     @DisplayName("빈 결과와 합계 제거 후 빈 결과는 실패다")
     void shouldFailOnEmptyResults() {
         assertThat(guard.verify(List.of(), CONTENT).status())
@@ -129,5 +173,10 @@ class OfferingGuardUnitTest {
     private OfferingDraft dupShare(String share) {
         return new OfferingDraft(null, "DX", null, List.of("TV"), null, null, "매출액",
                 new BigDecimal(share), List.of(), null, 2025);
+    }
+
+    private OfferingDraft yearlessShare(String segment, String share) {
+        return new OfferingDraft(null, segment, null, List.of(), null, null, "영업수익",
+                new BigDecimal(share), List.of(), null, null);
     }
 }
