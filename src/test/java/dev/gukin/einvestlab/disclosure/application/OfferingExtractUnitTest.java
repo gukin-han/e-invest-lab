@@ -35,7 +35,8 @@ class OfferingExtractUnitTest {
     private final StubOfferingRepository offeringRepository = new StubOfferingRepository();
     private final StubExtractor extractor = new StubExtractor();
     private final OfferingResultRecorder recorder = new OfferingResultRecorder(
-            contentRepository, offeringRepository, new RecordingTransactionManager());
+            contentRepository, offeringRepository, new tools.jackson.databind.ObjectMapper(),
+            new RecordingTransactionManager());
     private final OfferingExtractUseCase useCase = new OfferingExtractUseCase(
             contentRepository, recorder, content -> content, extractor, new OfferingGuard(),
             new OfferingExtractionProperties(List.of("mini", "full")));
@@ -81,8 +82,10 @@ class OfferingExtractUnitTest {
 
         assertThat(result).isEqualTo(new OfferingExtractResult(0, 0, 1, 1));
         assertThat(offeringRepository.saved).isEmpty();
-        assertThat(contentRepository.saved.getFirst().getOfferingExtractionStatus())
-                .isEqualTo(OfferingExtractionStatus.FAILED);
+        BusinessContent failedContent = contentRepository.saved.getFirst();
+        assertThat(failedContent.getOfferingExtractionStatus()).isEqualTo(OfferingExtractionStatus.FAILED);
+        assertThat(failedContent.getOfferingExtractionNote()).contains("원문 부재");
+        assertThat(failedContent.getOfferingExtractionDrafts()).contains("세탁기");
     }
 
     private BusinessContent content(String filingNumber) {
@@ -133,6 +136,11 @@ class OfferingExtractUnitTest {
             return pending.stream()
                     .filter(content -> content.getFilingNumber().equals(filingNumber))
                     .findFirst();
+        }
+
+        @Override
+        public List<BusinessContent> findAllFailedWithDrafts() {
+            return List.of();
         }
     }
 

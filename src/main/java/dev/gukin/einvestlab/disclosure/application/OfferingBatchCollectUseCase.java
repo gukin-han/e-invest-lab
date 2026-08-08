@@ -77,14 +77,13 @@ public class OfferingBatchCollectUseCase {
                 }
             } else {
                 log.warn("가드 실패 (filing={}): {}", entry.getKey(), verdict.issues());
-                recorder.recordFailure(content);
+                recorder.recordFailure(content, verdict.issues(), entry.getValue());
                 failed++;
             }
         }
         for (String filingNumber : outcome.failedFilingNumbers()) {
-            contentRepository.findByFilingNumber(filingNumber).ifPresent(content -> {
-                recorder.recordFailure(content);
-            });
+            contentRepository.findByFilingNumber(filingNumber).ifPresent(content ->
+                    recorder.recordFailure(content, List.of("배치 응답 실패"), null));
             failed++;
         }
         return new Tally(extracted, corrected, failed);

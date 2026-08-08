@@ -39,7 +39,8 @@ public class OfferingBatchSubmitUseCase {
                 slices.put(content.getFilingNumber(), slicer.slice(content.getContent()));
             } catch (DisclosureSourceException e) {
                 log.warn("슬라이스 실패 (filing={}): {}", content.getFilingNumber(), e.getMessage());
-                recorder.recordFailure(content);
+                recorder.recordFailure(content,
+                        java.util.List.of("슬라이스 실패: " + e.getMessage()), null);
                 sliceFailed++;
             }
         }

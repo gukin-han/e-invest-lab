@@ -47,6 +47,12 @@ public class BusinessContent {
     @Column(length = 30)
     private OfferingExtractionStatus offeringExtractionStatus;
 
+    @Column(columnDefinition = "TEXT")
+    private String offeringExtractionNote;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String offeringExtractionDrafts;
+
     @Builder
     public BusinessContent(UUID id, String corpCode, String filingNumber,
                            LocalDate filedDate, String content, Instant collectedAt) {
@@ -58,7 +64,9 @@ public class BusinessContent {
         this.collectedAt = collectedAt;
     }
 
-    public void recordOfferingExtraction(OfferingExtractionStatus status) {
+    public void recordOfferingExtraction(OfferingExtractionStatus status, String note, String drafts) {
         this.offeringExtractionStatus = status;
+        this.offeringExtractionNote = note;
+        this.offeringExtractionDrafts = drafts;
     }
 }

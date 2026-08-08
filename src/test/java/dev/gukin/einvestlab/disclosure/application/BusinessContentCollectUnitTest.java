@@ -162,5 +162,10 @@ class BusinessContentCollectUnitTest {
         public java.util.Optional<BusinessContent> findByFilingNumber(String filingNumber) {
             return java.util.Optional.empty();
         }
+
+        @Override
+        public List<BusinessContent> findAllFailedWithDrafts() {
+            return List.of();
+        }
     }
 }

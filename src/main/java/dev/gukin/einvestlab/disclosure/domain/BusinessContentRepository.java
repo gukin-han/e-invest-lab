@@ -11,5 +11,7 @@ public interface BusinessContentRepository {
 
     List<BusinessContent> findAllPendingOfferingExtraction();
 
+    List<BusinessContent> findAllFailedWithDrafts();
+
     Optional<BusinessContent> findByFilingNumber(String filingNumber);
 }

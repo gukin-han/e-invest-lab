@@ -31,6 +31,12 @@ public class BusinessContentRepositoryAdapter implements BusinessContentReposito
     }
 
     @Override
+    public List<BusinessContent> findAllFailedWithDrafts() {
+        return jpa.findAllByOfferingExtractionStatusAndOfferingExtractionDraftsIsNotNull(
+                OfferingExtractionStatus.FAILED);
+    }
+
+    @Override
     public Optional<BusinessContent> findByFilingNumber(String filingNumber) {
         return jpa.findByFilingNumber(filingNumber);
     }

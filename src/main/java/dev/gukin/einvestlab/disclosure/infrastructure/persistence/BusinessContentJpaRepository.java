@@ -21,4 +21,7 @@ public interface BusinessContentJpaRepository extends JpaRepository<BusinessCont
             where c.offeringExtractionStatus is null or c.offeringExtractionStatus = :retryable
             """)
     List<BusinessContent> findAllPendingOfferingExtraction(@Param("retryable") OfferingExtractionStatus retryable);
+
+    List<BusinessContent> findAllByOfferingExtractionStatusAndOfferingExtractionDraftsIsNotNull(
+            OfferingExtractionStatus status);
 }

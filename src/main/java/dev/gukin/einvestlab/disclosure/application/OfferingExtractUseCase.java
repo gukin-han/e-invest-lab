@@ -53,10 +53,12 @@ public class OfferingExtractUseCase {
             slice = slicer.slice(content.getContent());
         } catch (DisclosureSourceException e) {
             log.warn("슬라이스 실패 (filing={}): {}", content.getFilingNumber(), e.getMessage());
-            recorder.recordFailure(content);
+            recorder.recordFailure(content, List.of("슬라이스 실패: " + e.getMessage()), null);
             return new Outcome(OfferingExtractionStatus.FAILED, false);
         }
 
+        List<String> lastIssues = List.of("모든 모델 호출 실패");
+        List<OfferingDraft> lastDrafts = null;
         List<String> models = properties.models();
         for (int i = 0; i < models.size(); i++) {
             String model = models.get(i);
@@ -67,6 +69,7 @@ public class OfferingExtractUseCase {
             } catch (OfferingExtractionException e) {
                 log.warn("추출 호출 실패 (filing={}, model={}): {}",
                         content.getFilingNumber(), model, e.getMessage());
+                lastIssues = List.of("호출 실패(" + model + "): " + e.getMessage());
                 continue;
             }
             OfferingGuardVerdict verdict = guard.verify(drafts, content.getContent());
@@ -80,8 +83,10 @@ public class OfferingExtractUseCase {
             }
             log.warn("가드 실패 (filing={}, model={}): {}",
                     content.getFilingNumber(), model, verdict.issues());
+            lastIssues = verdict.issues();
+            lastDrafts = drafts;
         }
-        recorder.recordFailure(content);
+        recorder.recordFailure(content, lastIssues, lastDrafts);
         return new Outcome(OfferingExtractionStatus.FAILED, models.size() > 1);
     }
 
