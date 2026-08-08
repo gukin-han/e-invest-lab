@@ -2,6 +2,8 @@ package dev.gukin.einvestlab.disclosure.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -41,6 +43,10 @@ public class BusinessContent {
     @Column(nullable = false)
     private Instant collectedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private OfferingExtractionStatus offeringExtractionStatus;
+
     @Builder
     public BusinessContent(UUID id, String corpCode, String filingNumber,
                            LocalDate filedDate, String content, Instant collectedAt) {
@@ -50,5 +56,9 @@ public class BusinessContent {
         this.filedDate = filedDate;
         this.content = content;
         this.collectedAt = collectedAt;
+    }
+
+    public void recordOfferingExtraction(OfferingExtractionStatus status) {
+        this.offeringExtractionStatus = status;
     }
 }

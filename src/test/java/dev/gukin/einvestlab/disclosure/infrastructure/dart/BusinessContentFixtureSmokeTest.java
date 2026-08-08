@@ -40,7 +40,7 @@ class BusinessContentFixtureSmokeTest {
     @Test
     @DisplayName("실물 슬라이스에서 추출 → 슬라이스 연쇄가 태그 없는 선별 텍스트를 만든다")
     void shouldChainExtractAndSliceOnRealFixture() {
-        BusinessContentSlicer slicer = new BusinessContentSlicer();
+        BusinessContentSlicerAdapter slicer = new BusinessContentSlicerAdapter();
 
         String sliced = slicer.slice(extractor.extract(fixture("samsung-boundary.xml")));
 

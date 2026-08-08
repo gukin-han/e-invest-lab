@@ -152,5 +152,10 @@ class BusinessContentCollectUnitTest {
         public boolean existsByFilingNumber(String filingNumber) {
             return filingNumber.equals(existing);
         }
+
+        @Override
+        public List<BusinessContent> findAllPendingOfferingExtraction() {
+            return List.of();
+        }
     }
 }

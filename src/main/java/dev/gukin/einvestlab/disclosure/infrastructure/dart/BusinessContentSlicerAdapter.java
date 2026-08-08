@@ -1,5 +1,6 @@
 package dev.gukin.einvestlab.disclosure.infrastructure.dart;
 
+import dev.gukin.einvestlab.disclosure.domain.BusinessContentSlicer;
 import dev.gukin.einvestlab.disclosure.domain.DisclosureSourceException;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class BusinessContentSlicer {
+public class BusinessContentSlicerAdapter implements BusinessContentSlicer {
 
     private static final Pattern TITLE = Pattern.compile("<TITLE[^>]*>([^<]{1,120})</TITLE>");
     private static final Pattern TOP_TITLE = Pattern.compile("^\\s*\\d+\\.\\s*(?:\\((제조서비스업|금융업)\\))?");
@@ -20,6 +21,7 @@ public class BusinessContentSlicer {
     private static final int FINANCIAL_OPERATIONS_TEXT_LIMIT = 4_000;
     private static final String TRUNCATION_MARK = "…(이하 생략)";
 
+    @Override
     public String slice(String businessContent) {
         List<Heading> headings = findTopHeadings(businessContent);
         if (headings.isEmpty()) {

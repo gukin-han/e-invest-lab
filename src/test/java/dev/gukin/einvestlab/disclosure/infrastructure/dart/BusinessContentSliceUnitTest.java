@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("사업의 내용 슬라이스 단위 테스트")
 class BusinessContentSliceUnitTest {
 
-    private final BusinessContentSlicer slicer = new BusinessContentSlicer();
+    private final BusinessContentSlicerAdapter slicer = new BusinessContentSlicerAdapter();
 
     @Test
     @DisplayName("일반 서식은 사업의 개요·주요 제품·매출만 선별하고 나머지는 버린다")

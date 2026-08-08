@@ -44,3 +44,14 @@ fsc:
   api:
     base-url: https://apis.data.go.kr/1160100/service
     key: ${STOCK_PRICE_API_KEY:}
+
+openai:
+  api:
+    base-url: https://api.openai.com/v1
+    key: ${OPENAI_API_KEY:}
+
+offering:
+  extraction:
+    models:
+      - gpt-5-mini
+      - gpt-5

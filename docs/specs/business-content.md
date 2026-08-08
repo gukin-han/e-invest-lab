@@ -212,3 +212,13 @@ stage 1 빌드 완료 (1~5단계 + 조립). 수집 경로: `POST /internal/busin
 4. **stage 2a — Offering 추출 설계**: 하위 항목 슬라이서(사업의 개요·주요 제품 및 서비스·매출)부터, 그 위에 LLM 추출 실험.
 5. **전 회사 전수는 2a/2b 증명 후**: 역방향 쿼리가 실제 서비스될 때 폭이 가치를 가짐. 형태는 스케줄러가 아니라 1회 배치 → 연 갱신 자동화 순 (사업보고서는 연 1회, 3~4월 집중). 예외 세분화(`SourceUnavailable` vs `ContractViolation`)·부분 실패 집계도 이때 함께. 슬라이서 선별 리포트(항목별 선별 여부를 반환에 포함해 "매출 항목 미선별" 같은 부분 누락을 기록)도 이 시점에.
 6. **보고서 유형 확장 (나중 과제)**: 반기 `A002`·분기 `A003` — 같은 list.json/document.xml 경로라 검색 파라미터 + 보고서 유형 컬럼 추가로 확장 가능. 비중 시계열 해상도가 분기 단위로 상승.
+
+## stage 2a 구현 (2026-08-08)
+
+ADR(`llm-client.md`) 채택 확정에 따라 Offering 추출 파이프라인 빌드 완료:
+
+- **경로**: `POST /internal/offerings/extract` → 미시도/실패 `business_contents` → 슬라이스(도메인 포트 `BusinessContentSlicer`, 기존 infra 클래스는 `{포트명}Adapter` 규칙으로 정렬) → 모델 체인(`gpt-5-mini` → 가드 실패 시 `gpt-5`, `offering.extraction.models` 설정) → 검증 가드 3판정 → `offerings` 교체 저장(선삭제 후 삽입 — EPS 재추출 멱등과 동형, flush 순서 교훈 반영해 벌크 delete).
+- **연동**: 직접 HTTP(`java.net.http` + 와이어 DTO) + strict json_schema. 프롬프트(규칙 8 + basis 어휘 고정 + 합계 제외 예시)·스키마는 `resources/prompts/` 자원.
+- **검증 가드**: 1층 존재 검증(수치 정규화 대조 — "3조 8,542억원"↔38542억원 조 단위 분해 포함, 제품·매출처 부분 문자열), 2층 구조 검증(합계류 드롭=교정, basis 정규화=교정, 빈 결과·그룹 비중 합>115=실패). 판정 = EXTRACTED / CORRECTED / FAILED(재시도 풀).
+- **상태**: `business_contents.offering_extraction_status` (NULL=미시도). 유일성 제약 없음 — 행 의미론(행=사실 하나) 유지.
+- 다음: 46개사 라이브 실행(예상 비용 $1 미만) → 실측 분석 → 역방향 조회 API.

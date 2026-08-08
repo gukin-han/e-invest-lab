@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["offerings"],
+  "properties": {
+    "offerings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["business_part", "segment", "qualifier", "products", "revenue_amount", "revenue_unit", "revenue_basis", "revenue_share", "customers", "entity", "fiscal_year"],
+        "properties": {
+          "business_part": { "type": ["string", "null"] },
+          "segment": { "type": ["string", "null"] },
+          "qualifier": { "type": ["string", "null"] },
+          "products": { "type": "array", "items": { "type": "string" } },
+          "revenue_amount": { "type": ["number", "null"] },
+          "revenue_unit": { "type": ["string", "null"] },
+          "revenue_basis": { "type": ["string", "null"] },
+          "revenue_share": { "type": ["number", "null"] },
+          "customers": { "type": "array", "items": { "type": "string" } },
+          "entity": { "type": ["string", "null"] },
+          "fiscal_year": { "type": ["integer", "null"] }
+        }
+      }
+    }
+  }
+}
