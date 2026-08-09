@@ -13,7 +13,9 @@ public interface DailyStockPriceRepository {
 
     List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to);
 
+    int rebuildShareCountChanges(java.time.Instant computedAt);
+
     List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
                                                boolean decreasing, BigDecimal maxSingleDropPct,
-                                               int limit);
+                                               BigDecimal maxSingleRisePct, int limit);
 }

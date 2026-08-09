@@ -9,6 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,9 +26,13 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
     @Autowired
     private DailyStockPriceJpaRepository jpa;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @AfterEach
     void tearDown() {
         jpa.deleteAllInBatch();
+        jdbcTemplate.update("DELETE FROM share_count_changes");
     }
 
     @Test
@@ -96,8 +101,9 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
                 priceWithShares("222222", LocalDate.of(2026, 8, 1), 1_000_000L),
                 priceWithShares("222222", LocalDate.of(2026, 8, 6), 1_200_000L)));
 
+        repository.rebuildShareCountChanges(Instant.parse("2026-08-09T09:00:00Z"));
         var trends = repository.findShareCountTrends(
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 8, 1), true, null, 10);
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 8, 1), true, null, null, 10);
 
         assertThat(trends).hasSize(2);
         var top = trends.getFirst();
@@ -109,6 +115,25 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
         assertThat(top.decreasedShares()).isEqualTo(100_000L);
         assertThat(top.lastDecreaseDate()).isEqualTo(LocalDate.of(2026, 8, 6));
         assertThat(trends.getLast().netChangePct()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    @DisplayName("증가 랭킹은 단일 +100% 이상(분할·무상증자류 기계적 증가)을 제외한다")
+    void shouldExcludeMechanicalRisesFromIncreaseRanking() {
+        repository.upsertPrices(List.of(
+                priceWithShares("333333", LocalDate.of(2026, 8, 1), 1_000_000L),
+                priceWithShares("333333", LocalDate.of(2026, 8, 6), 10_000_000L),
+                priceWithShares("444444", LocalDate.of(2026, 8, 1), 1_000_000L),
+                priceWithShares("444444", LocalDate.of(2026, 8, 6), 1_200_000L)));
+        repository.rebuildShareCountChanges(Instant.parse("2026-08-09T09:00:00Z"));
+
+        var diluting = repository.findShareCountTrends(
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 8, 1), false,
+                null, new java.math.BigDecimal("100"), 10);
+
+        assertThat(diluting)
+                .extracting(t -> t.stockCode())
+                .containsExactly("444444");
     }
 
     @Test

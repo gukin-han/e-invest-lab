@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -45,29 +46,42 @@ public class DailyStockPriceJdbcRepository {
                 collected_at = VALUES(collected_at)
             """;
 
-    private static final String SHARE_COUNT_TREND_SQL = """
-            WITH seq AS (
+    private static final String REBUILD_SHARE_COUNT_CHANGES_SQL = """
+            INSERT INTO share_count_changes (stock_code, trade_date, prev_count, new_count, change_pct, computed_at)
+            SELECT stock_code, trade_date, prev, lsc,
+                   ROUND((lsc - prev) / prev * 100, 2), ?
+            FROM (
                 SELECT stock_code, trade_date, listed_share_count lsc,
                        LAG(listed_share_count)
                            OVER (PARTITION BY stock_code ORDER BY trade_date) prev
                 FROM daily_stock_prices
-                WHERE trade_date >= ? AND listed_share_count IS NOT NULL
-            ),
-            agg AS (
-                SELECT stock_code,
-                       SUM(CASE WHEN lsc < prev THEN prev - lsc ELSE 0 END) decreased_shares,
-                       SUM(CASE WHEN lsc < prev THEN 1 ELSE 0 END) decrease_events,
-                       MAX(CASE WHEN lsc < prev THEN trade_date END) last_decrease_date,
-                       MAX(CASE WHEN lsc < prev THEN (prev - lsc) / prev * 100 ELSE 0 END) max_drop_pct
-                FROM seq
-                WHERE prev IS NOT NULL
-                GROUP BY stock_code
-            ),
-            g AS (
+                WHERE listed_share_count IS NOT NULL
+            ) t
+            WHERE prev IS NOT NULL AND prev > 0 AND lsc <> prev
+            ON DUPLICATE KEY UPDATE
+                prev_count = VALUES(prev_count),
+                new_count = VALUES(new_count),
+                change_pct = VALUES(change_pct),
+                computed_at = VALUES(computed_at)
+            """;
+
+    private static final String SHARE_COUNT_TREND_SQL = """
+            WITH g AS (
                 SELECT stock_code, MIN(trade_date) first_date, MAX(trade_date) last_trade_date
                 FROM daily_stock_prices
                 WHERE trade_date >= ? AND listed_share_count IS NOT NULL
                 GROUP BY stock_code
+            ),
+            agg AS (
+                SELECT ch.stock_code,
+                       SUM(CASE WHEN ch.change_pct < 0 THEN ch.prev_count - ch.new_count ELSE 0 END) decreased_shares,
+                       SUM(CASE WHEN ch.change_pct < 0 THEN 1 ELSE 0 END) decrease_events,
+                       MAX(CASE WHEN ch.change_pct < 0 THEN ch.trade_date END) last_decrease_date,
+                       MAX(CASE WHEN ch.change_pct < 0 THEN -ch.change_pct ELSE 0 END) max_drop_pct,
+                       MAX(CASE WHEN ch.change_pct > 0 THEN ch.change_pct ELSE 0 END) max_rise_pct
+                FROM share_count_changes ch
+                JOIN g ON g.stock_code = ch.stock_code AND ch.trade_date > g.first_date
+                GROUP BY ch.stock_code
             )
             SELECT g.stock_code, c.name company_name,
                    s.listed_share_count start_count,
@@ -86,15 +100,20 @@ public class DailyStockPriceJdbcRepository {
             LEFT JOIN companies c ON c.stock_code = g.stock_code
             WHERE s.listed_share_count > 0 AND g.last_trade_date >= ?
               AND (? IS NULL OR COALESCE(a.max_drop_pct, 0) <= ?)
+              AND (? IS NULL OR COALESCE(a.max_rise_pct, 0) < ?)
             ORDER BY net_change_pct %s, g.stock_code
             LIMIT ?
             """;
 
     private final JdbcTemplate jdbc;
 
+    public int rebuildShareCountChanges(Instant computedAt) {
+        return jdbc.update(REBUILD_SHARE_COUNT_CHANGES_SQL, Timestamp.from(computedAt));
+    }
+
     public List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
                                                       boolean decreasing, BigDecimal maxSingleDropPct,
-                                                      int limit) {
+                                                      BigDecimal maxSingleRisePct, int limit) {
         String sql = SHARE_COUNT_TREND_SQL.formatted(decreasing ? "ASC" : "DESC");
         return jdbc.query(sql, (rs, rowNum) -> new ShareCountTrend(
                         rs.getString("stock_code"),
@@ -107,8 +126,9 @@ public class DailyStockPriceJdbcRepository {
                         rs.getObject("last_decrease_date", LocalDate.class),
                         rs.getBigDecimal("max_drop_pct"),
                         rs.getObject("market_cap", Long.class)),
-                Date.valueOf(since), Date.valueOf(since), Date.valueOf(listedCutoff),
-                maxSingleDropPct, maxSingleDropPct, limit);
+                Date.valueOf(since), Date.valueOf(listedCutoff),
+                maxSingleDropPct, maxSingleDropPct,
+                maxSingleRisePct, maxSingleRisePct, limit);
     }
 
     public int upsertPrices(List<DailyStockPrice> prices) {

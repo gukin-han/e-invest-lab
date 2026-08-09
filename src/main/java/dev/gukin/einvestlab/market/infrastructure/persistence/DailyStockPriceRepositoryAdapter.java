@@ -34,9 +34,15 @@ public class DailyStockPriceRepositoryAdapter implements DailyStockPriceReposito
     }
 
     @Override
+    public int rebuildShareCountChanges(java.time.Instant computedAt) {
+        return jdbc.rebuildShareCountChanges(computedAt);
+    }
+
+    @Override
     public List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
                                                       boolean decreasing, BigDecimal maxSingleDropPct,
-                                                      int limit) {
-        return jdbc.findShareCountTrends(since, listedCutoff, decreasing, maxSingleDropPct, limit);
+                                                      BigDecimal maxSingleRisePct, int limit) {
+        return jdbc.findShareCountTrends(since, listedCutoff, decreasing,
+                maxSingleDropPct, maxSingleRisePct, limit);
     }
 }

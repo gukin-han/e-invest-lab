@@ -3,6 +3,7 @@ package dev.gukin.einvestlab.market.interfaces.web;
 import dev.gukin.einvestlab.global.web.ApiResponse;
 import dev.gukin.einvestlab.market.application.DailyStockPriceCollectResult;
 import dev.gukin.einvestlab.market.application.DailyStockPriceCollectUseCase;
+import dev.gukin.einvestlab.market.application.ShareCountChangeRebuildUseCase;
 import dev.gukin.einvestlab.market.interfaces.web.dto.DailyStockPriceCollectResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
 public class DailyStockPriceCollectController {
 
     private final DailyStockPriceCollectUseCase collectUseCase;
+    private final ShareCountChangeRebuildUseCase rebuildUseCase;
     private final Clock clock;
 
     @PostMapping("/internal/daily-stock-prices/collect")
@@ -26,5 +28,10 @@ public class DailyStockPriceCollectController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         DailyStockPriceCollectResult result = collectUseCase.collect(from, to, clock.instant());
         return ApiResponse.of(DailyStockPriceCollectResponse.from(result));
+    }
+
+    @PostMapping("/internal/share-count-changes/rebuild")
+    public ApiResponse<Integer> rebuildShareCountChanges() {
+        return ApiResponse.of(rebuildUseCase.rebuild(clock.instant()));
     }
 }

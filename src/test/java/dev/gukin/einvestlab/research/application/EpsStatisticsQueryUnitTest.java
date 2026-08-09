@@ -161,9 +161,14 @@ class EpsStatisticsQueryUnitTest {
         }
 
         @Override
+        public int rebuildShareCountChanges(java.time.Instant computedAt) {
+            return 0;
+        }
+
+        @Override
         public List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
                                                           boolean decreasing, java.math.BigDecimal maxSingleDropPct,
-                                                          int limit) {
+                                                          java.math.BigDecimal maxSingleRisePct, int limit) {
             return List.of();
         }
     }
