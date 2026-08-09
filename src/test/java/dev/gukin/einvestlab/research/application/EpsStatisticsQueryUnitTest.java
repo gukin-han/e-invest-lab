@@ -46,10 +46,11 @@ class EpsStatisticsQueryUnitTest {
     }
 
     @Test
-    @DisplayName("최근 종가를 연도 컨센서스로 나눠 forward PER 을 계산한다")
-    void shouldComputeForwardPerFromLatestClose() {
+    @DisplayName("최근 종가를 연도 컨센서스로 나눠 PER 을 계산하고, 지난 회계연도는 trailing·올해부터는 forward 로 판정한다")
+    void shouldComputePerWithTrailingForwardClassification() {
         priceRepository.latest = price("016360", LocalDate.of(2026, 8, 6), 70_000);
         estimateRepository.consensuses = List.of(
+                consensus(2025, "7000"),
                 consensus(2026, "5000"),
                 consensus(2027, "8000"));
 
@@ -59,10 +60,12 @@ class EpsStatisticsQueryUnitTest {
         assertThat(result.latestTradeDate()).isEqualTo(LocalDate.of(2026, 8, 6));
         assertThat(result.years())
                 .extracting(EpsConsensusResult.YearlyConsensus::fiscalYear,
-                        EpsConsensusResult.YearlyConsensus::forwardPer)
+                        EpsConsensusResult.YearlyConsensus::per,
+                        EpsConsensusResult.YearlyConsensus::perType)
                 .containsExactly(
-                        tuple(2026, new BigDecimal("14.00")),
-                        tuple(2027, new BigDecimal("8.75"))
+                        tuple(2025, new BigDecimal("10.00"), EpsConsensusResult.PerType.TRAILING),
+                        tuple(2026, new BigDecimal("14.00"), EpsConsensusResult.PerType.FORWARD),
+                        tuple(2027, new BigDecimal("8.75"), EpsConsensusResult.PerType.FORWARD)
                 );
     }
 
@@ -74,7 +77,7 @@ class EpsStatisticsQueryUnitTest {
 
         EpsConsensusResult result = query.consensus("016360", BASE_TIME);
 
-        assertThat(result.years().getFirst().forwardPer()).isNull();
+        assertThat(result.years().getFirst().per()).isNull();
     }
 
     @Test
@@ -87,7 +90,7 @@ class EpsStatisticsQueryUnitTest {
         assertThat(result.latestClosePrice()).isNull();
         assertThat(result.latestTradeDate()).isNull();
         assertThat(result.years().getFirst().averageEps()).isEqualByComparingTo("5000");
-        assertThat(result.years().getFirst().forwardPer()).isNull();
+        assertThat(result.years().getFirst().per()).isNull();
     }
 
     private EpsConsensus consensus(int fiscalYear, String averageEps) {

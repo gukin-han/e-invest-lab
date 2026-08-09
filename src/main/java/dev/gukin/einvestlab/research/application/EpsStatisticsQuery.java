@@ -22,11 +22,12 @@ public class EpsStatisticsQuery {
     private final DailyStockPriceRepository priceRepository;
 
     public EpsConsensusResult consensus(String stockCode, Instant baseTime) {
-        LocalDate since = LocalDate.ofInstant(baseTime, KOREA).minusMonths(VALID_MONTHS);
+        LocalDate baseDate = LocalDate.ofInstant(baseTime, KOREA);
         return EpsConsensusResult.of(
                 stockCode,
                 priceRepository.findLatestByStockCode(stockCode).orElse(null),
-                estimateRepository.findConsensus(stockCode, since));
+                estimateRepository.findConsensus(stockCode, baseDate.minusMonths(VALID_MONTHS)),
+                baseDate.getYear());
     }
 
     public List<EpsRevision> revisions(String stockCode, int fiscalYear) {

@@ -89,12 +89,13 @@
   .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
   .delta-up { color: var(--up); }
   .delta-down { color: var(--down); }
+  .per-type { color: var(--muted); font-size: 11px; }
 </style>
 </head>
 <body>
 <header>
   <h1>리서치 대시보드</h1>
-  <span class="sub">애널리스트 리포트 EPS 컨센서스 · 리비전 · forward PER</span>
+  <span class="sub">애널리스트 리포트 EPS 컨센서스 · 리비전 · PER</span>
   <nav class="filters" id="days-filter" aria-label="조회 기간">
     <button data-days="7" class="active">최근 7일</button>
     <button data-days="30">30일</button>
@@ -128,7 +129,7 @@
     </div>
 
     <div class="section">
-      <h2>연도별 EPS 컨센서스<span class="hint">증권사별 최신 추정치 평균 · 최근 6개월</span></h2>
+      <h2>연도별 EPS 컨센서스<span class="hint">증권사별 최신 추정치 평균 · 최근 6개월 · PER는 현재가 기준</span></h2>
       <table id="consensus-table">
         <thead>
         <tr>
@@ -137,7 +138,7 @@
           <th class="num">전년 대비</th>
           <th class="num">표본</th>
           <th class="num">범위</th>
-          <th class="num">forward PER</th>
+          <th class="num">PER</th>
         </tr>
         </thead>
         <tbody></tbody>
@@ -248,7 +249,7 @@ async function selectStock(stockCode, companyName, tr) {
       <td class="num ${deltaClass(delta)}">${delta ?? '—'}</td>
       <td class="num">${y.sampleCount}</td>
       <td class="num">${won(y.minEps)} ~ ${won(y.maxEps)}</td>
-      <td class="num">${y.forwardPer == null ? '—' : y.forwardPer + '배'}</td>`;
+      <td class="num">${y.per == null ? '—' : Number(y.per).toFixed(2) + '배 <span class="per-type">' + y.perType + '</span>'}</td>`;
     tbody.appendChild(tr);
   });
 

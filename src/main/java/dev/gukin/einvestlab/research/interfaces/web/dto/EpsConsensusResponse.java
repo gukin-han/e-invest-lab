@@ -20,7 +20,8 @@ public record EpsConsensusResponse(
             long sampleCount,
             BigDecimal minEps,
             BigDecimal maxEps,
-            BigDecimal forwardPer
+            BigDecimal per,
+            String perType
     ) {
     }
 
@@ -41,6 +42,7 @@ public record EpsConsensusResponse(
                 year.sampleCount(),
                 year.minEps().setScale(0, RoundingMode.HALF_UP),
                 year.maxEps().setScale(0, RoundingMode.HALF_UP),
-                year.forwardPer());
+                year.per(),
+                year.perType() == null ? null : year.perType().name().toLowerCase());
     }
 }
