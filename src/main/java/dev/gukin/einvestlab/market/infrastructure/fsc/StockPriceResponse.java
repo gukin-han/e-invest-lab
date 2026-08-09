@@ -46,7 +46,9 @@ record StockPriceResponse(@JsonProperty("response") Payload payload) {
             @JsonProperty("hipr") String highPrice,
             @JsonProperty("lopr") String lowPrice,
             @JsonProperty("clpr") String closePrice,
-            @JsonProperty("trqu") String volume
+            @JsonProperty("trqu") String volume,
+            @JsonProperty("lstgStCnt") String listedShareCount,
+            @JsonProperty("mrktTotAmt") String marketCap
     ) {
     }
 
@@ -82,6 +84,12 @@ record StockPriceResponse(@JsonProperty("response") Payload payload) {
                 Integer.parseInt(item.highPrice()),
                 Integer.parseInt(item.lowPrice()),
                 Integer.parseInt(item.closePrice()),
-                Long.parseLong(item.volume()));
+                Long.parseLong(item.volume()),
+                parseNullableLong(item.listedShareCount()),
+                parseNullableLong(item.marketCap()));
+    }
+
+    private static Long parseNullableLong(String value) {
+        return value == null || value.isBlank() ? null : Long.parseLong(value);
     }
 }

@@ -75,6 +75,8 @@ public class DailyStockPriceCollectUseCase {
                 .lowPrice(entry.lowPrice())
                 .closePrice(entry.closePrice())
                 .volume(entry.volume())
+                .listedShareCount(entry.listedShareCount())
+                .marketCap(entry.marketCap())
                 .collectedAt(baseTime)
                 .build();
     }

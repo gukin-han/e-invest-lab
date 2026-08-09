@@ -68,7 +68,7 @@ class DailyStockPriceCollectUnitTest {
 
     private DailyStockPriceEntry entry(String stockCode) {
         return new DailyStockPriceEntry(stockCode, LocalDate.of(2026, 8, 5), "KOSPI",
-                70_000, 71_000, 69_500, 70_500, 1_234_567L);
+                70_000, 71_000, 69_500, 70_500, 1_234_567L, 5_969_782_550L, 420_000_000_000_000L);
     }
 
     private static class StubSource implements DailyStockPriceSource {

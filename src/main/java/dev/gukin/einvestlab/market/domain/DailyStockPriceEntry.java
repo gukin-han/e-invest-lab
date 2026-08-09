@@ -10,6 +10,8 @@ public record DailyStockPriceEntry(
         int highPrice,
         int lowPrice,
         int closePrice,
-        long volume
+        long volume,
+        Long listedShareCount,
+        Long marketCap
 ) {
 }

@@ -42,6 +42,35 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
     }
 
     @Test
+    @DisplayName("값 없이 저장된 기존 행을 재수집하면 상장주식수·시가총액이 채워진다 — 백필 경로")
+    void shouldBackfillShareCountOnExistingRows() {
+        repository.upsertPrices(List.of(price("005930", LocalDate.of(2026, 8, 6), 70_000)));
+        assertThat(repository.findLatestByStockCode("005930").orElseThrow().getListedShareCount())
+                .isNull();
+
+        DailyStockPrice recollected = DailyStockPrice.builder()
+                .id(Ids.generate())
+                .stockCode("005930")
+                .tradeDate(LocalDate.of(2026, 8, 6))
+                .marketCategory("KOSPI")
+                .openPrice(69_500)
+                .highPrice(70_500)
+                .lowPrice(69_000)
+                .closePrice(70_000)
+                .volume(1_000L)
+                .listedShareCount(5_846_278_608L)
+                .marketCap(1_347_567_219_144_000L)
+                .collectedAt(Instant.parse("2026-08-09T09:00:00Z"))
+                .build();
+        repository.upsertPrices(List.of(recollected));
+
+        assertThat(jpa.count()).isEqualTo(1);
+        DailyStockPrice row = repository.findLatestByStockCode("005930").orElseThrow();
+        assertThat(row.getListedShareCount()).isEqualTo(5_846_278_608L);
+        assertThat(row.getMarketCap()).isEqualTo(1_347_567_219_144_000L);
+    }
+
+    @Test
     @DisplayName("시계열 조회는 기간 안의 그 종목만 거래일 오름차순으로 준다")
     void shouldFindSeriesWithinWindowOrdered() {
         repository.upsertPrices(List.of(

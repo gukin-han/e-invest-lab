@@ -50,13 +50,17 @@ public class DailyStockPrice {
     @Column(nullable = false)
     private long volume;
 
+    private Long listedShareCount;
+
+    private Long marketCap;
+
     @Column(nullable = false)
     private Instant collectedAt;
 
     @Builder
     public DailyStockPrice(UUID id, String stockCode, LocalDate tradeDate, String marketCategory,
                            int openPrice, int highPrice, int lowPrice, int closePrice,
-                           long volume, Instant collectedAt) {
+                           long volume, Long listedShareCount, Long marketCap, Instant collectedAt) {
         this.id = id;
         this.stockCode = stockCode;
         this.tradeDate = tradeDate;
@@ -66,6 +70,8 @@ public class DailyStockPrice {
         this.lowPrice = lowPrice;
         this.closePrice = closePrice;
         this.volume = volume;
+        this.listedShareCount = listedShareCount;
+        this.marketCap = marketCap;
         this.collectedAt = collectedAt;
     }
 }

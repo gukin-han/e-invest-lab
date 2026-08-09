@@ -28,12 +28,31 @@ class StockPriceReadUnitTest {
         assertThat(response.toEntries())
                 .extracting(DailyStockPriceEntry::stockCode, DailyStockPriceEntry::tradeDate,
                         DailyStockPriceEntry::marketCategory, DailyStockPriceEntry::closePrice,
-                        DailyStockPriceEntry::openPrice, DailyStockPriceEntry::volume)
+                        DailyStockPriceEntry::openPrice, DailyStockPriceEntry::volume,
+                        DailyStockPriceEntry::listedShareCount, DailyStockPriceEntry::marketCap)
                 .containsExactly(
-                        tuple("900110", LocalDate.of(2026, 8, 6), "KOSDAQ", 1_126, 1_171, 16_498L),
-                        tuple("900270", LocalDate.of(2026, 8, 6), "KOSDAQ", 420, 0, 0L),
-                        tuple("900260", LocalDate.of(2026, 8, 6), "KOSDAQ", 1_689, 1_727, 3_273L)
+                        tuple("900110", LocalDate.of(2026, 8, 6), "KOSDAQ", 1_126, 1_171, 16_498L,
+                                18_437_131L, 20_760_209_506L),
+                        tuple("900270", LocalDate.of(2026, 8, 6), "KOSDAQ", 420, 0, 0L,
+                                25_561_441L, 10_735_805_220L),
+                        tuple("900260", LocalDate.of(2026, 8, 6), "KOSDAQ", 1_689, 1_727, 3_273L,
+                                46_029_706L, 77_744_173_434L)
                 );
+    }
+
+    @Test
+    @DisplayName("상장주식수·시가총액이 없는 항목은 해당 값만 null 로 해석한다")
+    void shouldReadMissingShareCountAsNull() {
+        StockPriceResponse response = read("""
+                {"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"totalCount":1,
+                "items":{"item":[{"basDt":"20260806","srtnCd":"900110","mrktCtg":"KOSDAQ",
+                "mkp":"1171","hipr":"1188","lopr":"1126","clpr":"1126","trqu":"16498","lstgStCnt":""}]}}}}
+                """);
+
+        DailyStockPriceEntry entry = response.toEntries().getFirst();
+        assertThat(entry.listedShareCount()).isNull();
+        assertThat(entry.marketCap()).isNull();
+        assertThat(entry.closePrice()).isEqualTo(1_126);
     }
 
     @Test

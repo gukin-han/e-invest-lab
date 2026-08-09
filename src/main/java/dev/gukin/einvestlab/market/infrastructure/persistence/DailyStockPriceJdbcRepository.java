@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.List;
 
 @Repository
@@ -25,8 +26,10 @@ public class DailyStockPriceJdbcRepository {
                 low_price,
                 close_price,
                 volume,
+                listed_share_count,
+                market_cap,
                 collected_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 market_category = VALUES(market_category),
                 open_price = VALUES(open_price),
@@ -34,6 +37,8 @@ public class DailyStockPriceJdbcRepository {
                 low_price = VALUES(low_price),
                 close_price = VALUES(close_price),
                 volume = VALUES(volume),
+                listed_share_count = VALUES(listed_share_count),
+                market_cap = VALUES(market_cap),
                 collected_at = VALUES(collected_at)
             """;
 
@@ -50,7 +55,9 @@ public class DailyStockPriceJdbcRepository {
             statement.setInt(7, price.getLowPrice());
             statement.setInt(8, price.getClosePrice());
             statement.setLong(9, price.getVolume());
-            statement.setTimestamp(10, Timestamp.from(price.getCollectedAt()));
+            statement.setObject(10, price.getListedShareCount(), Types.BIGINT);
+            statement.setObject(11, price.getMarketCap(), Types.BIGINT);
+            statement.setTimestamp(12, Timestamp.from(price.getCollectedAt()));
         });
         return prices.size();
     }
