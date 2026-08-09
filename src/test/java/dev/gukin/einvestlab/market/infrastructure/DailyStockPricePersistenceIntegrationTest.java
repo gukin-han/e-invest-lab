@@ -87,6 +87,31 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
     }
 
     @Test
+    @DisplayName("주식수 변화 랭킹은 순변화율·감소 누적을 계산하고 감소순 정렬한다")
+    void shouldRankShareCountTrends() {
+        repository.upsertPrices(List.of(
+                priceWithShares("111111", LocalDate.of(2026, 8, 1), 1_000_000L),
+                priceWithShares("111111", LocalDate.of(2026, 8, 4), 950_000L),
+                priceWithShares("111111", LocalDate.of(2026, 8, 6), 900_000L),
+                priceWithShares("222222", LocalDate.of(2026, 8, 1), 1_000_000L),
+                priceWithShares("222222", LocalDate.of(2026, 8, 6), 1_200_000L)));
+
+        var trends = repository.findShareCountTrends(
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 8, 1), true, null, 10);
+
+        assertThat(trends).hasSize(2);
+        var top = trends.getFirst();
+        assertThat(top.stockCode()).isEqualTo("111111");
+        assertThat(top.startCount()).isEqualTo(1_000_000L);
+        assertThat(top.endCount()).isEqualTo(900_000L);
+        assertThat(top.netChangePct()).isEqualByComparingTo("-10.00");
+        assertThat(top.decreaseEvents()).isEqualTo(2);
+        assertThat(top.decreasedShares()).isEqualTo(100_000L);
+        assertThat(top.lastDecreaseDate()).isEqualTo(LocalDate.of(2026, 8, 6));
+        assertThat(trends.getLast().netChangePct()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
     @DisplayName("최근 시세는 거래일 기준 가장 늦은 행이다")
     void shouldFindLatestByTradeDate() {
         repository.upsertPrices(List.of(
@@ -111,6 +136,23 @@ class DailyStockPricePersistenceIntegrationTest extends AbstractIntegrationTest 
                 .lowPrice(closePrice - 1_000)
                 .closePrice(closePrice)
                 .volume(1_000_000L)
+                .collectedAt(Instant.parse("2026-08-07T03:00:00Z"))
+                .build();
+    }
+
+    private DailyStockPrice priceWithShares(String stockCode, LocalDate tradeDate, long shareCount) {
+        return DailyStockPrice.builder()
+                .id(Ids.generate())
+                .stockCode(stockCode)
+                .tradeDate(tradeDate)
+                .marketCategory("KOSPI")
+                .openPrice(10_000)
+                .highPrice(10_500)
+                .lowPrice(9_500)
+                .closePrice(10_000)
+                .volume(1_000L)
+                .listedShareCount(shareCount)
+                .marketCap(shareCount * 10_000)
                 .collectedAt(Instant.parse("2026-08-07T03:00:00Z"))
                 .build();
     }

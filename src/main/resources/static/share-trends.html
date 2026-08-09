@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>주식수 변화 랭킹</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --up: #006300;
+    --down: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --up: #0ca30c;
+      --down: #d03b3b;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header a { color: var(--muted); font-size: 13px; margin-left: auto; }
+  .filters { display: flex; gap: 6px; }
+  .filters button {
+    font: inherit; font-size: 13px; padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--ink-2); cursor: pointer;
+  }
+  .filters button.active { color: var(--ink); font-weight: 700; border-color: var(--baseline); }
+  .controls { display: flex; gap: 16px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+  .controls .label { color: var(--muted); font-size: 12px; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; color: var(--muted); font-weight: 500;
+    padding: 6px 8px; border-bottom: 1px solid var(--baseline); white-space: nowrap;
+  }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .delta-up { color: var(--up); }
+  .delta-down { color: var(--down); }
+  .code { color: var(--muted); font-size: 12px; }
+  .warn { color: var(--muted); font-size: 11px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>주식수 변화 랭킹</h1>
+  <span class="sub">상장주식수 일별 시계열 기준 · 자사주 매입은 미반영(소각만 잡힘) · 감소 랭킹은 단일 -20% 초과(감자·병합 의심) 제외</span>
+  <a href="/index.html">리서치 대시보드로</a>
+</header>
+
+<div class="controls">
+  <span class="label">기간</span>
+  <nav class="filters" id="years-filter">
+    <button data-years="1">1년</button>
+    <button data-years="3" class="active">3년</button>
+    <button data-years="5">5년</button>
+  </nav>
+  <span class="label">방향</span>
+  <nav class="filters" id="direction-filter">
+    <button data-direction="decrease" class="active">감소 상위 (환원)</button>
+    <button data-direction="increase">증가 상위 (희석)</button>
+  </nav>
+</div>
+
+<section class="panel">
+  <table id="trend-table">
+    <thead>
+    <tr>
+      <th class="num">순위</th>
+      <th>회사</th>
+      <th class="num">시작 주식수</th>
+      <th class="num">현재 주식수</th>
+      <th class="num">순변화율</th>
+      <th class="num">감소 횟수</th>
+      <th class="num">누적 감소</th>
+      <th class="num">최근 감소일</th>
+      <th class="num">시가총액</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="empty" id="empty" hidden>데이터가 없습니다</div>
+</section>
+
+<script>
+const fmt = n => n == null ? '—' : Number(n).toLocaleString('ko-KR');
+function marketCapText(v) {
+  if (v == null) return '—';
+  const jo = v / 1e12;
+  if (jo >= 1) return jo.toFixed(1) + '조';
+  return Math.round(v / 1e8).toLocaleString('ko-KR') + '억';
+}
+function pctCell(pct) {
+  if (pct == null) return '<td class="num">—</td>';
+  const cls = pct < 0 ? 'delta-up' : (pct > 0 ? 'delta-down' : '');
+  const sign = pct > 0 ? '+' : '';
+  return `<td class="num ${cls}">${sign}${Number(pct).toFixed(2)}%</td>`;
+}
+
+let years = 3;
+let direction = 'decrease';
+
+async function load() {
+  const res = await fetch(`/api/stocks/share-count-trends?years=${years}&direction=${direction}&limit=50`);
+  const rows = (await res.json()).data;
+  const tbody = document.querySelector('#trend-table tbody');
+  tbody.replaceChildren();
+  document.getElementById('empty').hidden = rows.length > 0;
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${i + 1}</td>
+      <td>${r.companyName ?? '(미등록)'} <span class="code">${r.stockCode}</span></td>
+      <td class="num">${fmt(r.startCount)}</td>
+      <td class="num">${fmt(r.endCount)}</td>
+      ${pctCell(r.netChangePct)}
+      <td class="num">${r.decreaseEvents}</td>
+      <td class="num">${fmt(r.decreasedShares)}</td>
+      <td class="num">${r.lastDecreaseDate ?? '—'}</td>
+      <td class="num">${marketCapText(r.marketCap)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('years-filter').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  years = Number(b.dataset.years);
+  document.querySelectorAll('#years-filter button').forEach(x => x.classList.toggle('active', x === b));
+  load();
+});
+document.getElementById('direction-filter').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  direction = b.dataset.direction;
+  document.querySelectorAll('#direction-filter button').forEach(x => x.classList.toggle('active', x === b));
+  load();
+});
+load();
+</script>
+</body>
+</html>

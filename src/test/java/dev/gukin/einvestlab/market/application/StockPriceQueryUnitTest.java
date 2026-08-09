@@ -2,6 +2,7 @@ package dev.gukin.einvestlab.market.application;
 
 import dev.gukin.einvestlab.market.domain.DailyStockPrice;
 import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
+import dev.gukin.einvestlab.market.domain.ShareCountTrend;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -57,6 +58,13 @@ class StockPriceQueryUnitTest {
         public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
             this.requestedFrom = from;
             this.requestedTo = to;
+            return List.of();
+        }
+
+        @Override
+        public List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
+                                                          boolean decreasing, java.math.BigDecimal maxSingleDropPct,
+                                                          int limit) {
             return List.of();
         }
     }

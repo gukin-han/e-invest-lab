@@ -2,9 +2,11 @@ package dev.gukin.einvestlab.market.infrastructure.persistence;
 
 import dev.gukin.einvestlab.market.domain.DailyStockPrice;
 import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
+import dev.gukin.einvestlab.market.domain.ShareCountTrend;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -29,5 +31,12 @@ public class DailyStockPriceRepositoryAdapter implements DailyStockPriceReposito
     @Override
     public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
         return jpa.findAllByStockCodeAndTradeDateBetweenOrderByTradeDateAsc(stockCode, from, to);
+    }
+
+    @Override
+    public List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
+                                                      boolean decreasing, BigDecimal maxSingleDropPct,
+                                                      int limit) {
+        return jdbc.findShareCountTrends(since, listedCutoff, decreasing, maxSingleDropPct, limit);
     }
 }

@@ -1,7 +1,9 @@
 package dev.gukin.einvestlab.market.interfaces.web;
 
 import dev.gukin.einvestlab.global.web.ApiResponse;
+import dev.gukin.einvestlab.market.application.ShareCountTrendQuery;
 import dev.gukin.einvestlab.market.application.StockPriceQuery;
+import dev.gukin.einvestlab.market.interfaces.web.dto.ShareCountTrendResponse;
 import dev.gukin.einvestlab.market.interfaces.web.dto.StockPriceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,7 +21,19 @@ import java.util.List;
 public class StockPriceController {
 
     private final StockPriceQuery priceQuery;
+    private final ShareCountTrendQuery trendQuery;
     private final Clock clock;
+
+    @GetMapping("/api/stocks/share-count-trends")
+    public ApiResponse<List<ShareCountTrendResponse>> shareCountTrends(
+            @RequestParam(defaultValue = "3") int years,
+            @RequestParam(defaultValue = "decrease") String direction,
+            @RequestParam(defaultValue = "50") int limit) {
+        return ApiResponse.of(trendQuery.rank(years, "decrease".equals(direction),
+                        Math.min(limit, 200), clock.instant()).stream()
+                .map(ShareCountTrendResponse::from)
+                .toList());
+    }
 
     @GetMapping("/api/stocks/{stockCode}/prices")
     public ApiResponse<List<StockPriceResponse>> prices(

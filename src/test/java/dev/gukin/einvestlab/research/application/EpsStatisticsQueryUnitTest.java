@@ -3,6 +3,7 @@ package dev.gukin.einvestlab.research.application;
 import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.market.domain.DailyStockPrice;
 import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
+import dev.gukin.einvestlab.market.domain.ShareCountTrend;
 import dev.gukin.einvestlab.research.domain.EpsConsensus;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
 import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
@@ -156,6 +157,13 @@ class EpsStatisticsQueryUnitTest {
 
         @Override
         public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
+            return List.of();
+        }
+
+        @Override
+        public List<ShareCountTrend> findShareCountTrends(LocalDate since, LocalDate listedCutoff,
+                                                          boolean decreasing, java.math.BigDecimal maxSingleDropPct,
+                                                          int limit) {
             return List.of();
         }
     }
