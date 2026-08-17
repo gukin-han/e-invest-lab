@@ -85,3 +85,12 @@ set -a; source .env; set +a
 ```bash
 ./gradlew test            # 단위 + ArchUnit + Testcontainers 통합 테스트
 ```
+
+## 배포 (홈서버)
+
+`main` 에 푸시하면 `.github/workflows/deploy.yml` 이 돈다: GitHub 러너에서 테스트 → 통과하면 홈서버의 self-hosted 러너(라벨 `einvestlab`)가 소스를 `~/e-invest-lab` 에 동기화하고 `docker compose --profile app up -d --build` → `/api/stocks/recently-covered` 헬스체크. 홈서버는 LAN 안이라 GitHub 가 들어오는 대신 러너가 당겨오는 구조.
+
+- 시크릿은 GitHub Actions Secrets(`DB_PASSWORD`, `DART_API_KEY`, `STOCK_PRICE_API_KEY`, `OPENAI_API_KEY`, `SLACK_WEBHOOK_URL`) → 배포 시 서버 `.env` 로 기록. 이미지 태그는 커밋 SHA 7자리.
+- 데이터는 볼륨: MySQL `mysql-data`, PDF `~/e-invest-lab/data/analyst-report-pdfs`. 소스 동기화는 `data`·`.env` 를 건드리지 않는다.
+- 로컬에서 같은 앱을 돌리면 슬랙 알림이 두 번 간다 — 로컬 `.env` 의 `SLACK_WEBHOOK_URL` 은 비워 둔다.
+- 수동 확인: `ssh homeserver 'cd ~/e-invest-lab && docker compose --profile app ps && docker compose --profile app logs --tail 50 app'`
