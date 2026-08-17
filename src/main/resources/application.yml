@@ -45,6 +45,10 @@ fsc:
     base-url: https://apis.data.go.kr/1160100/service
     key: ${STOCK_PRICE_API_KEY:}
 
+slack:
+  webhook:
+    url: ${SLACK_WEBHOOK_URL:}
+
 openai:
   api:
     base-url: https://api.openai.com/v1

@@ -12,7 +12,9 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -20,6 +22,15 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OutboxEvent {
+
+    static final List<Duration> BACKOFF = List.of(
+            Duration.ofMinutes(1),
+            Duration.ofMinutes(5),
+            Duration.ofMinutes(30),
+            Duration.ofHours(2),
+            Duration.ofHours(12));
+    static final int MAX_ATTEMPTS = BACKOFF.size() + 1;
+    private static final int LAST_ERROR_MAX_LENGTH = 500;
 
     @Id
     @JdbcTypeCode(SqlTypes.BINARY)
@@ -66,5 +77,35 @@ public class OutboxEvent {
         event.nextAttemptAt = now;
         event.createdAt = now;
         return event;
+    }
+
+    public void markSent(Instant now) {
+        attemptCount++;
+        status = OutboxEventStatus.SENT;
+        sentAt = now;
+        lastError = null;
+    }
+
+    public void markFailed(String error, Instant now) {
+        attemptCount++;
+        lastError = truncate(error);
+        if (attemptCount >= MAX_ATTEMPTS) {
+            status = OutboxEventStatus.DEAD;
+            return;
+        }
+        nextAttemptAt = now.plus(BACKOFF.get(attemptCount - 1));
+    }
+
+    public void markDead(String error) {
+        attemptCount++;
+        lastError = truncate(error);
+        status = OutboxEventStatus.DEAD;
+    }
+
+    private static String truncate(String error) {
+        if (error == null) {
+            return null;
+        }
+        return error.length() <= LAST_ERROR_MAX_LENGTH ? error : error.substring(0, LAST_ERROR_MAX_LENGTH);
     }
 }
