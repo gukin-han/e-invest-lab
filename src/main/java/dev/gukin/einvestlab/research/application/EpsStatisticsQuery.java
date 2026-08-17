@@ -16,7 +16,7 @@ import java.util.List;
 public class EpsStatisticsQuery {
 
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
-    private static final int VALID_MONTHS = 6;
+    static final int VALID_MONTHS = 6;
 
     private final EpsEstimateRepository estimateRepository;
     private final DailyStockPriceRepository priceRepository;
@@ -26,7 +26,7 @@ public class EpsStatisticsQuery {
         return EpsConsensusResult.of(
                 stockCode,
                 priceRepository.findLatestByStockCode(stockCode).orElse(null),
-                estimateRepository.findConsensus(stockCode, baseDate.minusMonths(VALID_MONTHS)),
+                estimateRepository.findConsensus(stockCode, baseDate.minusMonths(VALID_MONTHS), null),
                 baseDate.getYear());
     }
 

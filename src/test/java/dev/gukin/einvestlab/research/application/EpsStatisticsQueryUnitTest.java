@@ -129,10 +129,15 @@ class EpsStatisticsQueryUnitTest {
         }
 
         @Override
-        public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
+        public List<EpsConsensus> findConsensus(String stockCode, LocalDate since, String excludedBroker) {
             this.requestedStockCode = stockCode;
             this.requestedSince = since;
             return consensuses;
+        }
+
+        @Override
+        public List<EpsEstimate> findAllByReportIdx(long reportIdx) {
+            return List.of();
         }
 
         @Override

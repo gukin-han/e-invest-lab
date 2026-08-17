@@ -2,6 +2,8 @@ package dev.gukin.einvestlab.research.infrastructure;
 
 import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
+import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
+import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.domain.EpsConsensus;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
 import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
@@ -34,6 +36,9 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
     private EpsEstimateRepository estimateRepository;
 
     @Autowired
+    private AnalystReportRepository reportRepository;
+
+    @Autowired
     private AnalystReportJpaRepository reportJpa;
 
     @Autowired
@@ -63,7 +68,7 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("증권사별 최신 추정치만 평균에 넣고, 중복 게시는 한 번만, 유효기간 밖은 뺀다")
         void shouldAverageLatestPerBrokerWithinWindow() {
-            assertThat(estimateRepository.findConsensus(STOCK, SINCE))
+            assertThat(estimateRepository.findConsensus(STOCK, SINCE, null))
                     .extracting(EpsConsensus::fiscalYear, EpsConsensus::sampleCount,
                             consensus -> consensus.averageEps().stripTrailingZeros(),
                             consensus -> consensus.minEps().stripTrailingZeros(),
@@ -75,9 +80,18 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
+        @DisplayName("제외 증권사를 주면 그 증권사의 추정치를 뺀 컨센서스를 준다")
+        void shouldExcludeBroker() {
+            assertThat(estimateRepository.findConsensus(STOCK, SINCE, "LS증권"))
+                    .extracting(EpsConsensus::sampleCount,
+                            consensus -> consensus.averageEps().stripTrailingZeros())
+                    .containsExactly(tuple(2L, new BigDecimal("6250").stripTrailingZeros()));
+        }
+
+        @Test
         @DisplayName("다른 종목의 추정치는 섞이지 않는다")
         void shouldIsolateByStock() {
-            assertThat(estimateRepository.findConsensus(OTHER_STOCK, SINCE))
+            assertThat(estimateRepository.findConsensus(OTHER_STOCK, SINCE, null))
                     .extracting(EpsConsensus::sampleCount,
                             consensus -> consensus.averageEps().stripTrailingZeros())
                     .containsExactly(tuple(1L, new BigDecimal("7777").stripTrailingZeros()));
@@ -100,6 +114,38 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
                             tuple(STOCK, 4L, 3L, LocalDate.of(2026, 8, 3)),
                             tuple(OTHER_STOCK, 1L, 1L, LocalDate.of(2026, 8, 1))
                     );
+        }
+    }
+
+    @Nested
+    @DisplayName("같은 증권사의 직전 추출 리포트를 찾을 때")
+    class WhenFindingPreviousByBroker {
+
+        @Test
+        @DisplayName("같은 종목·증권사에서 발행일이 앞선 최신 리포트를 준다")
+        void shouldFindLatestEarlierReportOfSameBroker() {
+            assertThat(reportRepository.findPreviousExtractedByBroker(STOCK, "LS증권", LocalDate.of(2026, 8, 1), 2L))
+                    .map(AnalystReport::getReportIdx)
+                    .contains(1L);
+        }
+
+        @Test
+        @DisplayName("같은 날 중복 게시는 report_idx 가 앞선 것을 직전으로 본다")
+        void shouldUseReportIdxOrderWithinSameDay() {
+            assertThat(reportRepository.findPreviousExtractedByBroker(STOCK, "대신증권", LocalDate.of(2026, 8, 3), 5L))
+                    .map(AnalystReport::getReportIdx)
+                    .contains(4L);
+            assertThat(reportRepository.findPreviousExtractedByBroker(STOCK, "대신증권", LocalDate.of(2026, 8, 3), 4L))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("다른 종목·다른 증권사의 리포트는 직전으로 잡히지 않는다")
+        void shouldIsolateByStockAndBroker() {
+            assertThat(reportRepository.findPreviousExtractedByBroker(OTHER_STOCK, "LS증권", LocalDate.of(2026, 8, 1), 7L))
+                    .isEmpty();
+            assertThat(reportRepository.findPreviousExtractedByBroker(STOCK, "IBK투자증권", LocalDate.of(2026, 8, 1), 3L))
+                    .isEmpty();
         }
     }
 
@@ -130,7 +176,7 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
 
     private void report(long reportIdx, String stockCode, String broker,
                         LocalDate publishedDate, String eps2026) {
-        reportJpa.save(AnalystReport.builder()
+        AnalystReport report = AnalystReport.builder()
                 .id(Ids.generate())
                 .reportIdx(reportIdx)
                 .stockCode(stockCode)
@@ -139,7 +185,9 @@ class EpsStatisticsIntegrationTest extends AbstractIntegrationTest {
                 .broker(broker)
                 .publishedDate(publishedDate)
                 .collectedAt(Instant.parse("2026-08-07T03:00:00Z"))
-                .build());
+                .build();
+        report.recordEpsExtraction(EpsExtractionStatus.EXTRACTED);
+        reportJpa.save(report);
         estimateJpa.save(EpsEstimate.builder()
                 .id(Ids.generate())
                 .reportIdx(reportIdx)

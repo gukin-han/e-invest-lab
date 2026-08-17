@@ -9,7 +9,9 @@ public interface EpsEstimateRepository {
 
     void deleteAllByReportIdx(long reportIdx);
 
-    List<EpsConsensus> findConsensus(String stockCode, LocalDate since);
+    List<EpsEstimate> findAllByReportIdx(long reportIdx);
+
+    List<EpsConsensus> findConsensus(String stockCode, LocalDate since, String excludedBroker);
 
     List<EpsRevision> findRevisions(String stockCode, int fiscalYear);
 }

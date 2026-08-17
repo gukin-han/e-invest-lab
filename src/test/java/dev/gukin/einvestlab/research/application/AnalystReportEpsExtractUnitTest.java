@@ -259,7 +259,12 @@ class AnalystReportEpsExtractUnitTest {
         }
 
         @Override
-        public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
+        public List<EpsConsensus> findConsensus(String stockCode, LocalDate since, String excludedBroker) {
+            return List.of();
+        }
+
+        @Override
+        public List<EpsEstimate> findAllByReportIdx(long reportIdx) {
             return List.of();
         }
 

@@ -27,8 +27,13 @@ public class EpsEstimateRepositoryAdapter implements EpsEstimateRepository {
     }
 
     @Override
-    public List<EpsConsensus> findConsensus(String stockCode, LocalDate since) {
-        return jpa.findConsensus(stockCode, since).stream()
+    public List<EpsEstimate> findAllByReportIdx(long reportIdx) {
+        return jpa.findAllByReportIdxOrderByFiscalYear(reportIdx);
+    }
+
+    @Override
+    public List<EpsConsensus> findConsensus(String stockCode, LocalDate since, String excludedBroker) {
+        return jpa.findConsensus(stockCode, since, excludedBroker).stream()
                 .map(row -> new EpsConsensus(
                         row.getFiscalYear(),
                         row.getAverageEps(),

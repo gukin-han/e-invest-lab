@@ -2,17 +2,37 @@ package dev.gukin.einvestlab.research.infrastructure.persistence;
 
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface AnalystReportJpaRepository extends JpaRepository<AnalystReport, UUID> {
 
     boolean existsByReportIdx(long reportIdx);
+
+    Optional<AnalystReport> findByReportIdx(long reportIdx);
+
+    @Query("""
+            select r from AnalystReport r
+            where r.stockCode = :stockCode
+              and r.broker = :broker
+              and r.epsExtractionStatus = :extracted
+              and (r.publishedDate < :publishedDate
+                   or (r.publishedDate = :publishedDate and r.reportIdx < :reportIdx))
+            order by r.publishedDate desc, r.reportIdx desc
+            """)
+    List<AnalystReport> findPreviousExtractedByBroker(@Param("stockCode") String stockCode,
+                                                      @Param("broker") String broker,
+                                                      @Param("publishedDate") LocalDate publishedDate,
+                                                      @Param("reportIdx") long reportIdx,
+                                                      @Param("extracted") EpsExtractionStatus extracted,
+                                                      Pageable pageable);
 
     List<AnalystReport> findAllByPdfPathIsNull();
 

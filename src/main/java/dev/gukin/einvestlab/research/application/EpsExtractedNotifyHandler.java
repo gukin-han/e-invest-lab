@@ -12,6 +12,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class EpsExtractedNotifyHandler implements OutboxEventHandler {
 
+    private final EpsNotificationComposer composer;
     private final EpsNotifier notifier;
     private final ObjectMapper objectMapper;
 
@@ -22,6 +23,7 @@ public class EpsExtractedNotifyHandler implements OutboxEventHandler {
 
     @Override
     public void handle(OutboxEvent event) {
-        notifier.notify(objectMapper.readValue(event.getPayload(), EpsExtractedEvent.class));
+        EpsExtractedEvent extracted = objectMapper.readValue(event.getPayload(), EpsExtractedEvent.class);
+        notifier.notify(composer.compose(extracted));
     }
 }

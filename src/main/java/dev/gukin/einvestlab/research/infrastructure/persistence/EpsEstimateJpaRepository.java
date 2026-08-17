@@ -17,6 +17,8 @@ public interface EpsEstimateJpaRepository extends JpaRepository<EpsEstimate, UUI
     @Query("delete from EpsEstimate e where e.reportIdx = :reportIdx")
     void deleteAllByReportIdx(@Param("reportIdx") long reportIdx);
 
+    List<EpsEstimate> findAllByReportIdxOrderByFiscalYear(long reportIdx);
+
     interface ConsensusRow {
         Integer getFiscalYear();
 
@@ -55,17 +57,20 @@ public interface EpsEstimateJpaRepository extends JpaRepository<EpsEstimate, UUI
                     FROM eps_estimates e2
                     JOIN analyst_reports r2 ON r2.report_idx = e2.report_idx
                     WHERE r2.stock_code = :stockCode AND r2.published_date >= :since
+                      AND (:excludedBroker IS NULL OR r2.broker <> :excludedBroker)
                     GROUP BY r2.broker, e2.fiscal_year
                 ) latest ON latest.broker = r.broker
                         AND latest.fiscal_year = e.fiscal_year
                         AND latest.latest_date = r.published_date
                 WHERE r.stock_code = :stockCode AND r.published_date >= :since
+                  AND (:excludedBroker IS NULL OR r.broker <> :excludedBroker)
                 GROUP BY e.fiscal_year, r.broker
             ) t
             GROUP BY t.fiscal_year
             ORDER BY t.fiscal_year
             """)
-    List<ConsensusRow> findConsensus(@Param("stockCode") String stockCode, @Param("since") LocalDate since);
+    List<ConsensusRow> findConsensus(@Param("stockCode") String stockCode, @Param("since") LocalDate since,
+                                     @Param("excludedBroker") String excludedBroker);
 
     @Query(nativeQuery = true, value = """
             SELECT DISTINCT r.published_date AS publishedDate,

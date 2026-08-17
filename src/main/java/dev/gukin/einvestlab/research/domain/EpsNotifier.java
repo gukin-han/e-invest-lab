@@ -2,5 +2,5 @@ package dev.gukin.einvestlab.research.domain;
 
 public interface EpsNotifier {
 
-    void notify(EpsExtractedEvent event);
+    void notify(EpsNotification notification);
 }
