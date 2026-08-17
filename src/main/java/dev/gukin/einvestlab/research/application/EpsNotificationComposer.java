@@ -1,6 +1,5 @@
 package dev.gukin.einvestlab.research.application;
 
-import dev.gukin.einvestlab.market.domain.DailyStockPrice;
 import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
@@ -39,7 +38,7 @@ public class EpsNotificationComposer {
                         report.getPublishedDate().minusMonths(EpsStatisticsQuery.VALID_MONTHS),
                         report.getBroker()),
                 priceRepository.findLatestByStockCode(report.getStockCode())
-                        .map(DailyStockPrice::getClosePrice)
+                        .map(p -> new EpsNotification.LatestPrice(p.getClosePrice(), p.getTradeDate()))
                         .orElse(null));
     }
 

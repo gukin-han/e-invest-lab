@@ -70,7 +70,7 @@ class EpsExtractedNotifyHandlerUnitTest {
         assertThat(n.previous().reportIdx()).isEqualTo(1L);
         assertThat(n.previous().figures()).containsExactly(new EpsFigure(2026, true, new BigDecimal("8850")));
         assertThat(n.consensus()).hasSize(1);
-        assertThat(n.closePrice()).isEqualTo(58_000);
+        assertThat(n.latestPrice()).isEqualTo(new EpsNotification.LatestPrice(58_000, PUBLISHED));
         assertThat(estimateRepository.excludedBroker).isEqualTo("키움증권");
         assertThat(estimateRepository.since).isEqualTo(PUBLISHED.minusMonths(6));
     }

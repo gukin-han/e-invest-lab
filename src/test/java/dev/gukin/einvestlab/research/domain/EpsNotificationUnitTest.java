@@ -28,7 +28,7 @@ class EpsNotificationUnitTest {
                 new EpsNotification.PreviousReport(1L, PUBLISHED.minusMonths(1), 72_000L, "Buy",
                         List.of(new EpsFigure(2026, true, new BigDecimal("8850")))),
                 List.of(new EpsConsensus(2026, new BigDecimal("9100"), 4, null, null)),
-                58_000);
+                new EpsNotification.LatestPrice(58_000, PUBLISHED.minusDays(1)));
 
         assertThat(n.keyYear()).isEqualTo(2026);
         assertThat(n.figures()).extracting(EpsFigure::fiscalYear).containsExactly(2024, 2025, 2026, 2027, 2028);
@@ -36,6 +36,7 @@ class EpsNotificationUnitTest {
         assertThat(n.signal()).isEqualTo(RevisionSignal.UP);
         assertThat(n.consensusGapRate()).contains(new BigDecimal("5.5"));
         assertThat(n.targetPriceChangeRate()).contains(new BigDecimal("13.9"));
+        assertThat(n.targetPriceUnchanged()).isFalse();
         assertThat(n.forwardPer()).contains(new BigDecimal("6.0"));
         assertThat(n.yearOverYearRate(FIGURES.get(2))).contains(new BigDecimal("57.2"));
         assertThat(n.yearOverYearRate(FIGURES.get(1))).isEmpty();
@@ -103,7 +104,7 @@ class EpsNotificationUnitTest {
     }
 
     private static EpsNotification notification(EpsNotification.PreviousReport previous,
-                                                List<EpsConsensus> consensus, Integer closePrice) {
+                                                List<EpsConsensus> consensus, EpsNotification.LatestPrice closePrice) {
         return new EpsNotification(650363L, "192080", "더블유게임즈", "키움증권", PUBLISHED,
                 "Buy", 82_000L, FIGURES, previous, consensus, closePrice);
     }

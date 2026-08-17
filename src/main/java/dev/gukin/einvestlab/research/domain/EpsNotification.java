@@ -18,10 +18,13 @@ public record EpsNotification(
         List<EpsFigure> figures,
         PreviousReport previous,
         List<EpsConsensus> consensus,
-        Integer closePrice
+        LatestPrice latestPrice
 ) {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
+
+    public record LatestPrice(int closePrice, LocalDate tradeDate) {
+    }
 
     public record PreviousReport(long reportIdx, LocalDate publishedDate, Long targetPrice,
                                  String opinion, List<EpsFigure> figures) {
@@ -82,6 +85,10 @@ public record EpsNotification(
         return Optional.of(previous.targetPrice());
     }
 
+    public boolean targetPriceUnchanged() {
+        return hasTargetPrice() && previousTargetPrice().filter(prev -> prev.equals(targetPrice)).isPresent();
+    }
+
     public Optional<BigDecimal> targetPriceChangeRate() {
         if (!hasTargetPrice()) {
             return Optional.empty();
@@ -91,12 +98,12 @@ public record EpsNotification(
     }
 
     public Optional<BigDecimal> forwardPer() {
-        if (closePrice == null || closePrice <= 0) {
+        if (latestPrice == null || latestPrice.closePrice() <= 0) {
             return Optional.empty();
         }
         return keyFigure()
                 .filter(f -> f.eps().signum() > 0)
-                .map(f -> BigDecimal.valueOf(closePrice).divide(f.eps(), 1, RoundingMode.HALF_UP));
+                .map(f -> BigDecimal.valueOf(latestPrice.closePrice()).divide(f.eps(), 1, RoundingMode.HALF_UP));
     }
 
     public Optional<BigDecimal> yearOverYearRate(EpsFigure figure) {
