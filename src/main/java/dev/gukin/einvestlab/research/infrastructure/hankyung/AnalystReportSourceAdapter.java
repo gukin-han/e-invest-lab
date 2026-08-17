@@ -24,6 +24,7 @@ public class AnalystReportSourceAdapter implements AnalystReportSource {
 
     private static final int PAGE_SIZE = 80;
     private static final Duration PAGE_DELAY = Duration.ofSeconds(1);
+    private static final Duration RESPONSE_TIMEOUT = Duration.ofSeconds(10);
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final HttpClient httpClient;
@@ -45,6 +46,7 @@ public class AnalystReportSourceAdapter implements AnalystReportSource {
     private String fetchPage(LocalDate start, LocalDate end, int page) {
         HttpRequest request = HttpRequest.newBuilder(buildListUri(start, end, page))
                 .header("User-Agent", "Mozilla/5.0")
+                .timeout(RESPONSE_TIMEOUT)
                 .GET()
                 .build();
         try {

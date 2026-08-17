@@ -19,6 +19,7 @@ import java.util.Arrays;
 public class AnalystReportPdfSourceAdapter implements AnalystReportPdfSource {
 
     private static final Duration DOWNLOAD_DELAY = Duration.ofSeconds(1);
+    private static final Duration RESPONSE_TIMEOUT = Duration.ofSeconds(30);
     private static final byte[] PDF_MAGIC = {'%', 'P', 'D', 'F'};
 
     private final HttpClient httpClient;
@@ -29,6 +30,7 @@ public class AnalystReportPdfSourceAdapter implements AnalystReportPdfSource {
         delay();
         HttpRequest request = HttpRequest.newBuilder(buildPdfUri(reportIdx))
                 .header("User-Agent", "Mozilla/5.0")
+                .timeout(RESPONSE_TIMEOUT)
                 .GET()
                 .build();
         try {

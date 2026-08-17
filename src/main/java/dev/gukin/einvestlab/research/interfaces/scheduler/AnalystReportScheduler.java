@@ -15,11 +15,16 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AnalystReportScheduler {
+
+    private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
+    private static final int FREQUENT_LOOKBACK_DAYS = 1;
 
     private final AnalystReportCollectUseCase collectUseCase;
     private final AnalystReportPdfDownloadUseCase downloadUseCase;
@@ -27,32 +32,43 @@ public class AnalystReportScheduler {
     private final AnalystReportPdfPurgeUseCase purgeUseCase;
     private final Clock clock;
 
+    @Scheduled(cron = "0 */10 7-15 * * MON-FRI", zone = "Asia/Seoul")
+    void pollFrequently() {
+        Instant baseTime = clock.instant();
+        LocalDate today = LocalDate.ofInstant(baseTime, KOREA);
+        collect(today.minusDays(FREQUENT_LOOKBACK_DAYS), today, baseTime, "frequent");
+        downloadPdfs();
+        extractEps(baseTime);
+    }
+
     @Scheduled(cron = "0 0 18 * * *", zone = "Asia/Seoul")
     void pollDaily() {
         Instant baseTime = clock.instant();
-        collect(baseTime);
+        collect(null, null, baseTime, "daily");
         downloadPdfs();
         extractEps(baseTime);
         purgePdfs(baseTime);
     }
 
-    private void collect(Instant baseTime) {
+    private void collect(LocalDate from, LocalDate to, Instant baseTime, String mode) {
         try {
-            log.info("analyst report collect started.");
-            AnalystReportCollectResult result = collectUseCase.collect(null, null, baseTime);
-            log.info("analyst report collect completed. collected={} skipped={}",
-                    result.collected(), result.skipped());
+            AnalystReportCollectResult result = collectUseCase.collect(from, to, baseTime);
+            if (result.collected() > 0 || "daily".equals(mode)) {
+                log.info("analyst report collect completed. mode={} collected={} skipped={}",
+                        mode, result.collected(), result.skipped());
+            }
         } catch (Exception e) {
-            log.error("analyst report collect failed.", e);
+            log.error("analyst report collect failed. mode={}", mode, e);
         }
     }
 
     private void downloadPdfs() {
         try {
-            log.info("analyst report pdf download started.");
             AnalystReportPdfDownloadResult result = downloadUseCase.downloadAll();
-            log.info("analyst report pdf download completed. downloaded={} failed={}",
-                    result.downloaded(), result.failed());
+            if (result.downloaded() + result.failed() > 0) {
+                log.info("analyst report pdf download completed. downloaded={} failed={}",
+                        result.downloaded(), result.failed());
+            }
         } catch (Exception e) {
             log.error("analyst report pdf download failed.", e);
         }
@@ -60,10 +76,11 @@ public class AnalystReportScheduler {
 
     private void extractEps(Instant baseTime) {
         try {
-            log.info("analyst report eps extract started.");
             AnalystReportEpsExtractResult result = extractUseCase.extractAll(baseTime);
-            log.info("analyst report eps extract completed. extracted={} noSummaryTable={} failed={}",
-                    result.extracted(), result.noSummaryTable(), result.failed());
+            if (result.extracted() + result.noSummaryTable() > 0) {
+                log.info("analyst report eps extract completed. extracted={} noSummaryTable={} failed={}",
+                        result.extracted(), result.noSummaryTable(), result.failed());
+            }
         } catch (Exception e) {
             log.error("analyst report eps extract failed.", e);
         }
