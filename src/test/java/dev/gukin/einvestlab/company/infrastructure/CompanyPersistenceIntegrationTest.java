@@ -3,7 +3,7 @@ package dev.gukin.einvestlab.company.infrastructure;
 import dev.gukin.einvestlab.company.domain.Company;
 import dev.gukin.einvestlab.company.infrastructure.persistence.CompanyJpaRepository;
 import dev.gukin.einvestlab.global.id.Ids;
-import dev.gukin.einvestlab.support.AbstractIntegrationTest;
+import dev.gukin.einvestlab.testsupport.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

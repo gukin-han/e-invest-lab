@@ -1,11 +1,13 @@
 package dev.gukin.einvestlab.research.application;
 
 import dev.gukin.einvestlab.global.id.Ids;
+import dev.gukin.einvestlab.support.outbox.application.OutboxEventPublisher;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.AnalystReportPdfStore;
 import dev.gukin.einvestlab.research.domain.AnalystReportRepository;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
 import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
+import dev.gukin.einvestlab.research.domain.EpsExtractedEvent;
 import dev.gukin.einvestlab.research.domain.EpsExtraction;
 import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.domain.EpsExtractor;
@@ -31,17 +33,20 @@ public class AnalystReportEpsExtractUseCase {
     private final EpsEstimateRepository estimateRepository;
     private final AnalystReportPdfStore pdfStore;
     private final EpsExtractor epsExtractor;
+    private final OutboxEventPublisher outboxPublisher;
     private final TransactionTemplate reportTransaction;
 
     public AnalystReportEpsExtractUseCase(AnalystReportRepository reportRepository,
                                           EpsEstimateRepository estimateRepository,
                                           AnalystReportPdfStore pdfStore,
                                           EpsExtractor epsExtractor,
+                                          OutboxEventPublisher outboxPublisher,
                                           PlatformTransactionManager transactionManager) {
         this.reportRepository = reportRepository;
         this.estimateRepository = estimateRepository;
         this.pdfStore = pdfStore;
         this.epsExtractor = epsExtractor;
+        this.outboxPublisher = outboxPublisher;
         this.reportTransaction = new TransactionTemplate(transactionManager);
     }
 
@@ -109,10 +114,18 @@ public class AnalystReportEpsExtractUseCase {
                 estimateRepository.saveAll(extraction.figures().stream()
                         .map(figure -> toEstimate(report, figure, baseTime))
                         .toList());
+                EpsExtractedEvent event = toEvent(report, extraction);
+                outboxPublisher.publish(EpsExtractedEvent.TYPE,
+                        String.valueOf(event.reportIdx()), event, baseTime);
             }
             report.recordEpsExtraction(extraction.status());
             reportRepository.save(report);
         });
+    }
+
+    private EpsExtractedEvent toEvent(AnalystReport report, EpsExtraction extraction) {
+        return new EpsExtractedEvent(report.getReportIdx(), report.getStockCode(),
+                report.getCompanyName(), extraction.figures());
     }
 
     private EpsEstimate toEstimate(AnalystReport report, EpsFigure figure, Instant baseTime) {

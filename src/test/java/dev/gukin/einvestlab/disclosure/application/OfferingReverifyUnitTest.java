@@ -7,7 +7,7 @@ import dev.gukin.einvestlab.disclosure.domain.Offering;
 import dev.gukin.einvestlab.disclosure.domain.OfferingDraft;
 import dev.gukin.einvestlab.disclosure.domain.OfferingExtractionStatus;
 import dev.gukin.einvestlab.disclosure.domain.OfferingRepository;
-import dev.gukin.einvestlab.support.RecordingTransactionManager;
+import dev.gukin.einvestlab.testsupport.RecordingTransactionManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;

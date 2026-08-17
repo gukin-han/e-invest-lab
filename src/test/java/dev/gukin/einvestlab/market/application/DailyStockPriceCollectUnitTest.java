@@ -5,7 +5,7 @@ import dev.gukin.einvestlab.market.domain.DailyStockPriceEntry;
 import dev.gukin.einvestlab.market.domain.DailyStockPriceRepository;
 import dev.gukin.einvestlab.market.domain.ShareCountTrend;
 import dev.gukin.einvestlab.market.domain.DailyStockPriceSource;
-import dev.gukin.einvestlab.support.RecordingTransactionManager;
+import dev.gukin.einvestlab.testsupport.RecordingTransactionManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

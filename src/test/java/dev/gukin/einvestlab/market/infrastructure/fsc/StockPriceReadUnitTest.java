@@ -2,7 +2,7 @@ package dev.gukin.einvestlab.market.infrastructure.fsc;
 
 import dev.gukin.einvestlab.market.domain.DailyStockPriceEntry;
 import dev.gukin.einvestlab.market.domain.MarketSourceException;
-import dev.gukin.einvestlab.support.Fixtures;
+import dev.gukin.einvestlab.testsupport.Fixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;

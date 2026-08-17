@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.support;
+package dev.gukin.einvestlab.testsupport;
 
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;

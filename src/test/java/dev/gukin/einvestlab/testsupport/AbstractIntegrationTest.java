@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.support;
+package dev.gukin.einvestlab.testsupport;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;

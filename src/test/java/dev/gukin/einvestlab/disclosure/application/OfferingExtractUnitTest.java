@@ -11,7 +11,7 @@ import dev.gukin.einvestlab.disclosure.domain.OfferingExtractionException;
 import dev.gukin.einvestlab.disclosure.domain.OfferingExtractionStatus;
 import dev.gukin.einvestlab.disclosure.domain.OfferingExtractor;
 import dev.gukin.einvestlab.disclosure.domain.OfferingRepository;
-import dev.gukin.einvestlab.support.RecordingTransactionManager;
+import dev.gukin.einvestlab.testsupport.RecordingTransactionManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

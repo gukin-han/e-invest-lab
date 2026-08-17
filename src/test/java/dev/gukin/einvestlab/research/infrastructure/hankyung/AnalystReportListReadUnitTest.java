@@ -1,7 +1,7 @@
 package dev.gukin.einvestlab.research.infrastructure.hankyung;
 
 import dev.gukin.einvestlab.research.domain.AnalystReportListing;
-import dev.gukin.einvestlab.support.Fixtures;
+import dev.gukin.einvestlab.testsupport.Fixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

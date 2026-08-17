@@ -4,12 +4,16 @@
 
 - 규칙
   - 패키지 루트는 `dev.gukin.einvestlab`이다.
-  - 전역 공통 코드는 `global`에 둔다.
-  - 도메인 코드는 도메인 이름 아래에 둔다.
+  - 최상위 분류는 셋이다: **업무 도메인**(도메인 이름), **지원 모듈**(`support` 아래), **전역 헬퍼**(`global`).
+  - `global`은 무상태 헬퍼와 설정만 담는다 (config, web, id). 자기 테이블·계층·스케줄을 가진 코드는 global 에 두지 않는다.
+  - `support`는 업무 언어는 없지만 자기 상태와 생애주기를 가진 기술 모듈을 담는다 (예: `support.outbox`). 지원 모듈도 도메인과 같은 계층 경계를 쓴다.
+  - 판별 기준: 지웠을 때 사라지는 것이 **편의면 global, 시스템 행동이면 support, 업무 능력이면 도메인**.
+  - 분류 축은 대상의 성질(역할)이다. 소비자 수 같은 사용 현황(`shared` 류 네이밍)은 축으로 쓰지 않는다 — 소비자 수는 시간에 따라 변해 패키지 소속을 흔든다.
   - 각 도메인은 `domain`, `application`, `infra`, `interfaces`를 기본 경계로 사용한다.
 - 이유
   - 도메인별 변경 범위를 패키지 구조에서 바로 확인할 수 있다.
   - 레이어 기준 최상위 구조보다 도메인 응집도가 높다.
+  - 지원 모듈을 최상위에 섞으면 첫 줄이 업무 지도이길 멈추고, global 에 넣으면 global 이 잡동사니가 된다 — 세 번째 통이 두 성격을 모두 지킨다.
 
 Bad:
 ```text
@@ -24,6 +28,13 @@ Good:
 ```text
 dev.gukin.einvestlab
 ├── global
+│   ├── config
+│   └── id
+├── support
+│   └── outbox
+│       ├── domain
+│       ├── application
+│       └── infrastructure
 └── company
     ├── domain
     ├── application

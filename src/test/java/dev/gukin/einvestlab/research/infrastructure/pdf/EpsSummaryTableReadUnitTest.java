@@ -3,7 +3,7 @@ package dev.gukin.einvestlab.research.infrastructure.pdf;
 import dev.gukin.einvestlab.research.domain.EpsExtraction;
 import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.domain.EpsFigure;
-import dev.gukin.einvestlab.support.Fixtures;
+import dev.gukin.einvestlab.testsupport.Fixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

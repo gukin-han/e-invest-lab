@@ -4,7 +4,7 @@ import dev.gukin.einvestlab.global.id.Ids;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
 import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.infrastructure.persistence.AnalystReportJpaRepository;
-import dev.gukin.einvestlab.support.AbstractIntegrationTest;
+import dev.gukin.einvestlab.testsupport.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

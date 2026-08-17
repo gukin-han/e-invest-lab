@@ -1,4 +1,4 @@
-package dev.gukin.einvestlab.support;
+package dev.gukin.einvestlab.testsupport;
 
 import java.io.IOException;
 import java.io.InputStream;

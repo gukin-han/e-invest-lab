@@ -1,6 +1,6 @@
 package dev.gukin.einvestlab.disclosure.infrastructure.dart;
 
-import dev.gukin.einvestlab.support.Fixtures;
+import dev.gukin.einvestlab.testsupport.Fixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

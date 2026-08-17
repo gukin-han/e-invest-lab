@@ -1,7 +1,11 @@
 package dev.gukin.einvestlab.research.application;
 
 import dev.gukin.einvestlab.global.id.Ids;
+import dev.gukin.einvestlab.support.outbox.application.OutboxEventPublisher;
+import dev.gukin.einvestlab.support.outbox.domain.OutboxEvent;
+import dev.gukin.einvestlab.support.outbox.domain.OutboxEventStatus;
 import dev.gukin.einvestlab.research.domain.AnalystReport;
+import dev.gukin.einvestlab.research.domain.EpsExtractedEvent;
 import dev.gukin.einvestlab.research.domain.AnalystReportPdfStore;
 import dev.gukin.einvestlab.research.domain.EpsConsensus;
 import dev.gukin.einvestlab.research.domain.EpsEstimate;
@@ -12,9 +16,10 @@ import dev.gukin.einvestlab.research.domain.EpsExtractionStatus;
 import dev.gukin.einvestlab.research.domain.EpsExtractor;
 import dev.gukin.einvestlab.research.domain.EpsFigure;
 import dev.gukin.einvestlab.research.domain.PdfTextExtractionException;
-import dev.gukin.einvestlab.support.RecordingTransactionManager;
+import dev.gukin.einvestlab.testsupport.RecordingTransactionManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -37,9 +42,11 @@ class AnalystReportEpsExtractUnitTest {
     private final StubEstimateRepository estimateRepository = new StubEstimateRepository();
     private final StubExtractor extractor = new StubExtractor();
     private final StubPdfStore pdfStore = new StubPdfStore();
+    private final StubOutboxEventRepository outboxRepository = new StubOutboxEventRepository();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final AnalystReportEpsExtractUseCase useCase = new AnalystReportEpsExtractUseCase(
             reportRepository, estimateRepository, pdfStore, extractor,
-            new RecordingTransactionManager());
+            new OutboxEventPublisher(outboxRepository, objectMapper), new RecordingTransactionManager());
 
     @Test
     @DisplayName("추출 성공이면 추정치를 저장하고 리포트를 EXTRACTED 로 기록한다")
@@ -65,6 +72,30 @@ class AnalystReportEpsExtractUnitTest {
     }
 
     @Test
+    @DisplayName("추출 성공이면 추출 스냅샷을 담은 PENDING 아웃박스 이벤트를 함께 저장한다")
+    void shouldSaveOutboxEventOnExtraction() throws Exception {
+        reportRepository.pendingEpsExtraction = List.of(report(1L));
+        List<EpsFigure> figures = List.of(
+                new EpsFigure(2025, false, new BigDecimal("2130")),
+                new EpsFigure(2026, true, new BigDecimal("4087")));
+        extractor.results.put(1L, EpsExtraction.extracted(figures));
+
+        useCase.extractAll(BASE_TIME);
+
+        assertThat(outboxRepository.saved).hasSize(1);
+        OutboxEvent event = outboxRepository.saved.getFirst();
+        assertThat(event.getEventType()).isEqualTo(EpsExtractedEvent.TYPE);
+        assertThat(event.getAggregateId()).isEqualTo("1");
+        assertThat(event.getStatus()).isEqualTo(OutboxEventStatus.PENDING);
+        assertThat(event.getAttemptCount()).isZero();
+        assertThat(event.getNextAttemptAt()).isEqualTo(BASE_TIME);
+        assertThat(event.getCreatedAt()).isEqualTo(BASE_TIME);
+        assertThat(event.getId()).isNotNull();
+        assertThat(objectMapper.readValue(event.getPayload(), EpsExtractedEvent.class))
+                .isEqualTo(new EpsExtractedEvent(1L, "016360", "삼성증권", figures));
+    }
+
+    @Test
     @DisplayName("요약표 없음이면 추정치 없이 상태만 확정 기록한다")
     void shouldMarkNoSummaryTableWithoutEstimates() {
         reportRepository.pendingEpsExtraction = List.of(report(1L));
@@ -74,6 +105,7 @@ class AnalystReportEpsExtractUnitTest {
 
         assertThat(result).isEqualTo(new AnalystReportEpsExtractResult(0, 1, 0));
         assertThat(estimateRepository.saved).isEmpty();
+        assertThat(outboxRepository.saved).isEmpty();
         assertThat(reportRepository.saved.getFirst().getEpsExtractionStatus())
                 .isEqualTo(EpsExtractionStatus.NO_SUMMARY_TABLE);
     }
@@ -110,6 +142,7 @@ class AnalystReportEpsExtractUnitTest {
 
         assertThat(result).isEqualTo(new AnalystReportEpsExtractResult(0, 0, 1));
         assertThat(estimateRepository.saved).isEmpty();
+        assertThat(outboxRepository.saved).isEmpty();
         assertThat(reportRepository.saved.getFirst().getEpsExtractionStatus())
                 .isEqualTo(EpsExtractionStatus.FAILED);
     }

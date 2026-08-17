@@ -8,7 +8,7 @@ import dev.gukin.einvestlab.research.domain.EpsEstimateRepository;
 import dev.gukin.einvestlab.research.domain.EpsRevision;
 import dev.gukin.einvestlab.research.infrastructure.persistence.AnalystReportJpaRepository;
 import dev.gukin.einvestlab.research.infrastructure.persistence.EpsEstimateJpaRepository;
-import dev.gukin.einvestlab.support.AbstractIntegrationTest;
+import dev.gukin.einvestlab.testsupport.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
