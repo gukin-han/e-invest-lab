@@ -34,11 +34,14 @@ public interface AnalystReportJpaRepository extends JpaRepository<AnalystReport,
                                                       @Param("extracted") EpsExtractionStatus extracted,
                                                       Pageable pageable);
 
-    List<AnalystReport> findAllByPdfPathIsNull();
+    List<AnalystReport> findAllByPdfPathIsNullAndPdfPurgedAtIsNull();
+
+    List<AnalystReport> findAllByPdfPathIsNotNullAndPublishedDateBefore(LocalDate cutoff);
 
     @Query("""
             select r from AnalystReport r
             where r.pdfPath is not null
+              and r.pdfPurgedAt is null
               and (r.epsExtractionStatus is null or r.epsExtractionStatus = :retryable)
             """)
     List<AnalystReport> findAllPendingEpsExtraction(@Param("retryable") EpsExtractionStatus retryable);

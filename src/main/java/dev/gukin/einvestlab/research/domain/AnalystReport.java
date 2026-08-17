@@ -59,6 +59,8 @@ public class AnalystReport {
     @Column(length = 300)
     private String pdfPath;
 
+    private Instant pdfPurgedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
     private EpsExtractionStatus epsExtractionStatus;
@@ -86,6 +88,11 @@ public class AnalystReport {
 
     public void detachPdf() {
         this.pdfPath = null;
+    }
+
+    public void purgePdf(Instant now) {
+        this.pdfPath = null;
+        this.pdfPurgedAt = now;
     }
 
     public void recordEpsExtraction(EpsExtractionStatus status) {

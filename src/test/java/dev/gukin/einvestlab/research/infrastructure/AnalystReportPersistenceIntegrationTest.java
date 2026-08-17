@@ -67,7 +67,7 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     class WhenFindingPendingEpsExtraction {
 
         @Test
-        @DisplayName("PDF 보유 + 미시도/실패만 나오고, 확정 상태는 빠진다")
+        @DisplayName("PDF 보유 + 미시도/실패만 나오고, 확정 상태와 PDF 정리분은 빠진다")
         void shouldFindOnlyPendingReports() {
             AnalystReport withoutPdf = saved(1L, null);
             AnalystReport untried = saved(2L, null);
@@ -75,7 +75,9 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
             AnalystReport failed = saved(3L, EpsExtractionStatus.FAILED);
             AnalystReport extracted = saved(4L, EpsExtractionStatus.EXTRACTED);
             AnalystReport noTable = saved(5L, EpsExtractionStatus.NO_SUMMARY_TABLE);
-            repository.saveAll(java.util.List.of(withoutPdf, untried, failed, extracted, noTable));
+            AnalystReport purgedFailed = saved(6L, EpsExtractionStatus.FAILED);
+            purgedFailed.purgePdf(Instant.parse("2026-08-17T09:00:00Z"));
+            repository.saveAll(java.util.List.of(withoutPdf, untried, failed, extracted, noTable, purgedFailed));
 
             assertThat(repository.findAllPendingEpsExtraction(EpsExtractionStatus.FAILED))
                     .extracting(AnalystReport::getReportIdx)
@@ -102,6 +104,48 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
+    @DisplayName("PDF 를 정리(purge)할 때")
+    class WhenPurgingPdf {
+
+        @Test
+        @DisplayName("PDF 를 가진 리포트 중 발행일이 컷오프 앞인 것만 정리 대상이고, 정리된 리포트는 다운로드 대상에서 빠진다")
+        void shouldFindPurgeCandidatesAndExcludePurgedFromDownload() {
+            AnalystReport old = report(1L, LocalDate.of(2025, 6, 1));
+            old.attachPdf("2025/06/1.pdf");
+            AnalystReport recent = report(2L, LocalDate.of(2026, 8, 5));
+            recent.attachPdf("2026/08/2.pdf");
+            AnalystReport oldWithoutPdf = report(3L, LocalDate.of(2025, 5, 1));
+            repository.saveAll(java.util.List.of(old, recent, oldWithoutPdf));
+
+            assertThat(repository.findAllByPdfPathIsNotNullAndPublishedDateBefore(LocalDate.of(2025, 8, 17)))
+                    .extracting(AnalystReport::getReportIdx)
+                    .containsExactly(1L);
+
+            old.purgePdf(Instant.parse("2026-08-17T09:00:00Z"));
+            repository.saveAndFlush(old);
+
+            assertThat(repository.findAllByPdfPathIsNullAndPdfPurgedAtIsNull())
+                    .extracting(AnalystReport::getReportIdx)
+                    .containsExactly(3L);
+            assertThat(repository.findAllByPdfPathIsNotNullAndPublishedDateBefore(LocalDate.of(2025, 8, 17)))
+                    .isEmpty();
+        }
+
+        private AnalystReport report(long reportIdx, LocalDate publishedDate) {
+            return AnalystReport.builder()
+                    .id(Ids.generate())
+                    .reportIdx(reportIdx)
+                    .stockCode("016360")
+                    .companyName("삼성증권")
+                    .title("삼성증권(016360) 최대실적 지속 경신")
+                    .broker("LS증권")
+                    .publishedDate(publishedDate)
+                    .collectedAt(Instant.parse("2026-08-05T03:00:00Z"))
+                    .build();
+        }
+    }
+
+    @Nested
     @DisplayName("PDF 경로를 붙일 때")
     class WhenAttachingPdfPath {
 
@@ -111,7 +155,7 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
             UUID id = Ids.generate();
             repository.save(sample(id, 651490L));
 
-            assertThat(repository.findAllByPdfPathIsNull())
+            assertThat(repository.findAllByPdfPathIsNullAndPdfPurgedAtIsNull())
                     .extracting(AnalystReport::getReportIdx)
                     .containsExactly(651490L);
 
@@ -119,7 +163,7 @@ class AnalystReportPersistenceIntegrationTest extends AbstractIntegrationTest {
             report.attachPdf("2026/08/651490.pdf");
             repository.saveAndFlush(report);
 
-            assertThat(repository.findAllByPdfPathIsNull()).isEmpty();
+            assertThat(repository.findAllByPdfPathIsNullAndPdfPurgedAtIsNull()).isEmpty();
             assertThat(repository.findById(id).orElseThrow().getPdfPath())
                     .isEqualTo("2026/08/651490.pdf");
         }

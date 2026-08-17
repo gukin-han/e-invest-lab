@@ -6,6 +6,8 @@ import dev.gukin.einvestlab.research.application.AnalystReportEpsExtractResult;
 import dev.gukin.einvestlab.research.application.AnalystReportEpsExtractUseCase;
 import dev.gukin.einvestlab.research.application.AnalystReportPdfDownloadResult;
 import dev.gukin.einvestlab.research.application.AnalystReportPdfDownloadUseCase;
+import dev.gukin.einvestlab.research.application.AnalystReportPdfPurgeResult;
+import dev.gukin.einvestlab.research.application.AnalystReportPdfPurgeUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,7 @@ public class AnalystReportScheduler {
     private final AnalystReportCollectUseCase collectUseCase;
     private final AnalystReportPdfDownloadUseCase downloadUseCase;
     private final AnalystReportEpsExtractUseCase extractUseCase;
+    private final AnalystReportPdfPurgeUseCase purgeUseCase;
     private final Clock clock;
 
     @Scheduled(cron = "0 0 18 * * *", zone = "Asia/Seoul")
@@ -30,6 +33,7 @@ public class AnalystReportScheduler {
         collect(baseTime);
         downloadPdfs();
         extractEps(baseTime);
+        purgePdfs(baseTime);
     }
 
     private void collect(Instant baseTime) {
@@ -62,6 +66,18 @@ public class AnalystReportScheduler {
                     result.extracted(), result.noSummaryTable(), result.failed());
         } catch (Exception e) {
             log.error("analyst report eps extract failed.", e);
+        }
+    }
+
+    private void purgePdfs(Instant baseTime) {
+        try {
+            AnalystReportPdfPurgeResult result = purgeUseCase.purgeAll(baseTime);
+            if (result.purged() + result.failed() > 0) {
+                log.info("analyst report pdf purge completed. purged={} failed={}",
+                        result.purged(), result.failed());
+            }
+        } catch (Exception e) {
+            log.error("analyst report pdf purge failed.", e);
         }
     }
 }

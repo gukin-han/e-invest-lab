@@ -14,6 +14,8 @@ public interface AnalystReportRepository {
 
     List<AnalystReport> findAllPendingEpsExtraction();
 
+    List<AnalystReport> findAllWithPdfPublishedBefore(LocalDate cutoff);
+
     List<CoveredStock> findRecentlyCovered(LocalDate since);
 
     Optional<AnalystReport> findByReportIdx(long reportIdx);

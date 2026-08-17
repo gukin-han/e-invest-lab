@@ -40,4 +40,14 @@ public class AnalystReportPdfStoreAdapter implements AnalystReportPdfStore {
     public boolean exists(String relativePath) {
         return Files.exists(resolve(relativePath));
     }
+
+    @Override
+    public void delete(String relativePath) {
+        Path target = resolve(relativePath);
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            throw new UncheckedIOException("PDF 삭제 실패: " + target, e);
+        }
+    }
 }

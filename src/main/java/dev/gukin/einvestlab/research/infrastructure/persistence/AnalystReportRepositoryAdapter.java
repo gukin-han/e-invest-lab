@@ -30,12 +30,17 @@ public class AnalystReportRepositoryAdapter implements AnalystReportRepository {
 
     @Override
     public List<AnalystReport> findAllWithoutPdf() {
-        return jpa.findAllByPdfPathIsNull();
+        return jpa.findAllByPdfPathIsNullAndPdfPurgedAtIsNull();
     }
 
     @Override
     public List<AnalystReport> findAllPendingEpsExtraction() {
         return jpa.findAllPendingEpsExtraction(EpsExtractionStatus.FAILED);
+    }
+
+    @Override
+    public List<AnalystReport> findAllWithPdfPublishedBefore(LocalDate cutoff) {
+        return jpa.findAllByPdfPathIsNotNullAndPublishedDateBefore(cutoff);
     }
 
     @Override

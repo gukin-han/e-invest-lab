@@ -111,6 +111,10 @@ class AnalystReportPdfDownloadUnitTest {
         public boolean exists(String relativePath) {
             return true;
         }
+
+        @Override
+        public void delete(String relativePath) {
+        }
     }
 
 }

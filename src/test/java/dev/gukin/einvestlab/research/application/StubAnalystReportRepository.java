@@ -14,6 +14,8 @@ class StubAnalystReportRepository implements AnalystReportRepository {
     Long existingReportIdx;
     List<AnalystReport> withoutPdf = List.of();
     List<AnalystReport> pendingEpsExtraction = List.of();
+    List<AnalystReport> withPdfPublishedBefore = List.of();
+    LocalDate requestedPurgeCutoff;
     List<CoveredStock> recentlyCovered = List.of();
     LocalDate requestedCoveredSince;
     final List<AnalystReport> saved = new ArrayList<>();
@@ -39,6 +41,12 @@ class StubAnalystReportRepository implements AnalystReportRepository {
     @Override
     public List<AnalystReport> findAllPendingEpsExtraction() {
         return pendingEpsExtraction;
+    }
+
+    @Override
+    public List<AnalystReport> findAllWithPdfPublishedBefore(LocalDate cutoff) {
+        this.requestedPurgeCutoff = cutoff;
+        return withPdfPublishedBefore;
     }
 
     @Override

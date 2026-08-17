@@ -241,6 +241,10 @@ class AnalystReportEpsExtractUnitTest {
         public boolean exists(String relativePath) {
             return !relativePath.equals(missingPath);
         }
+
+        @Override
+        public void delete(String relativePath) {
+        }
     }
 
     private static class StubEstimateRepository implements EpsEstimateRepository {

@@ -10,4 +10,6 @@ public interface AnalystReportPdfStore {
     Path resolve(String relativePath);
 
     boolean exists(String relativePath);
+
+    void delete(String relativePath);
 }
