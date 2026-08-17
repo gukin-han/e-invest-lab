@@ -12,8 +12,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -27,12 +27,14 @@ jobs:
     needs: test
     runs-on: [self-hosted, einvestlab]
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Sync to deploy directory
+      - name: Sync source to deploy directory
         run: |
           mkdir -p ~/e-invest-lab/data
-          rsync -a --delete --exclude='.git' --exclude='data' --exclude='.env' ./ ~/e-invest-lab/
+          rm -rf "$RUNNER_TEMP/src" && git clone --quiet --depth 1 --branch main \
+            https://github.com/${GITHUB_REPOSITORY}.git "$RUNNER_TEMP/src"
+          git -C "$RUNNER_TEMP/src" checkout --quiet "$GITHUB_SHA" 2>/dev/null \
+            || git -C "$RUNNER_TEMP/src" fetch --quiet --depth 1 origin "$GITHUB_SHA" && git -C "$RUNNER_TEMP/src" checkout --quiet "$GITHUB_SHA"
+          rsync -a --delete --exclude='.git' --exclude='data' --exclude='.env' "$RUNNER_TEMP/src/" ~/e-invest-lab/
 
       - name: Write .env
         run: |
