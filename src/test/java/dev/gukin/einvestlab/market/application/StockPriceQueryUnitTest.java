@@ -41,6 +41,12 @@ class StockPriceQueryUnitTest {
 
     private static class RecordingRepository implements DailyStockPriceRepository {
 
+        @Override
+        public boolean existsByTradeDate(java.time.LocalDate tradeDate) {
+            return false;
+        }
+
+
         private LocalDate requestedFrom;
         private LocalDate requestedTo;
 

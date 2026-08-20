@@ -148,6 +148,12 @@ class EpsStatisticsQueryUnitTest {
 
     private static class StubPriceRepository implements DailyStockPriceRepository {
 
+        @Override
+        public boolean existsByTradeDate(java.time.LocalDate tradeDate) {
+            return false;
+        }
+
+
         private DailyStockPrice latest;
 
         @Override

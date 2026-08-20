@@ -137,6 +137,11 @@ class EpsExtractedNotifyHandlerUnitTest {
         }
 
         @Override
+        public boolean existsByTradeDate(LocalDate tradeDate) {
+            return false;
+        }
+
+        @Override
         public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
             return List.of();
         }

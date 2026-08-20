@@ -86,6 +86,12 @@ class DailyStockPriceCollectUnitTest {
 
     private static class StubRepository implements DailyStockPriceRepository {
 
+        @Override
+        public boolean existsByTradeDate(java.time.LocalDate tradeDate) {
+            return false;
+        }
+
+
         private final List<DailyStockPrice> upserted = new ArrayList<>();
 
         @Override

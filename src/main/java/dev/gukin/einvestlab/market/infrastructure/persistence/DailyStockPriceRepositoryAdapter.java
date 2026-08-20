@@ -29,6 +29,11 @@ public class DailyStockPriceRepositoryAdapter implements DailyStockPriceReposito
     }
 
     @Override
+    public boolean existsByTradeDate(LocalDate tradeDate) {
+        return jpa.existsByTradeDate(tradeDate);
+    }
+
+    @Override
     public List<DailyStockPrice> findSeries(String stockCode, LocalDate from, LocalDate to) {
         return jpa.findAllByStockCodeAndTradeDateBetweenOrderByTradeDateAsc(stockCode, from, to);
     }

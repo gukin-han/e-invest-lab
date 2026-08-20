@@ -12,6 +12,8 @@ public interface DailyStockPriceJpaRepository extends JpaRepository<DailyStockPr
 
     Optional<DailyStockPrice> findTopByStockCodeOrderByTradeDateDesc(String stockCode);
 
+    boolean existsByTradeDate(LocalDate tradeDate);
+
     List<DailyStockPrice> findAllByStockCodeAndTradeDateBetweenOrderByTradeDateAsc(
             String stockCode, LocalDate from, LocalDate to);
 }
