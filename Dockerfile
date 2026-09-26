@@ -9,10 +9,10 @@ RUN npm run build
 # Stage 2: Build backend
 FROM eclipse-temurin:21-jdk AS backend
 WORKDIR /app
-COPY gradle/ gradle/
-COPY gradlew build.gradle.kts settings.gradle.kts ./
+COPY backend/gradle/ gradle/
+COPY backend/gradlew backend/build.gradle.kts backend/settings.gradle.kts ./
 RUN --mount=type=cache,target=/root/.gradle ./gradlew dependencies --no-daemon -q > /dev/null 2>&1 || true
-COPY src/ src/
+COPY backend/src/ src/
 COPY --from=frontend /app/frontend/dist/ src/main/resources/static/
 RUN --mount=type=cache,target=/root/.gradle ./gradlew bootJar -x test --no-daemon -Dorg.gradle.jvmargs="-Xmx1g"
 

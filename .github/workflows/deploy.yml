@@ -21,6 +21,7 @@ jobs:
       - name: Install pdftotext
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
       - name: Test
+        working-directory: backend
         run: ./gradlew test --no-daemon
 
   deploy:

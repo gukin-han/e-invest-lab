@@ -55,3 +55,6 @@ data/
 
 ### Experiment raw data (regenerable via ./gradlew memTest*) ###
 docs/adr/streaming-memory-experiment/v3-heap-*.csv
+
+### macOS ###
+.DS_Store
