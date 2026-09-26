@@ -55,7 +55,7 @@ EPS 경로
 
 ## 운영
 
-- **배포**: `main` 푸시 → GitHub 러너에서 전체 테스트 → 홈서버 self-hosted 러너가 `docker compose --profile app up -d --build` → 헬스체크. 이미지 태그는 커밋 SHA. → [워크플로](.github/workflows/deploy.yml)
+- **배포**: 홈서버 self-hosted 러너가 `main` 을 당겨와 `docker compose --profile app up -d --build` → 헬스체크. 이미지 태그는 커밋 SHA. 홈서버를 내려둔 동안 자동 배포는 중단하고 CI 는 테스트만 돌린다. → [CI](.github/workflows/ci.yml)
 - **스케줄**: 리포트 폴링 두 케이던스(촘촘 10분 / 안전망 일 1회), 아웃박스 릴레이 1분, 시세·등록부 일 1회. 실행이 겹치면 다음 회차는 건너뛴다.
 - **실패 처리**: 원천 실패는 건별 격리 + 다음 실행 멱등 재시도. 알림 실패는 백오프 1분 → 5분 → 30분 → 2시간 → 12시간, 6회 후 DEAD + 마지막 오류 기록. HTTP 는 연결 3초·응답 10~30초 타임아웃.
 - **보존**: PDF 롤링 1년 GC (파일 삭제 → DB 마킹, 멱등, 삭제 상태를 미다운로드와 구분).
@@ -116,8 +116,9 @@ set -a; source .env; set +a
 
 ## 배포 (홈서버)
 
-`main` 푸시 → `.github/workflows/deploy.yml`: GitHub 러너 테스트 → 홈서버 self-hosted 러너(라벨 `einvestlab`)가 소스를 `~/e-invest-lab` 에 동기화하고 `docker compose --profile app up -d --build` → `/api/stocks/recently-covered` 헬스체크. 홈서버는 LAN 안이라 GitHub 가 들어오는 대신 러너가 당겨온다.
+홈서버는 LAN 안이라 GitHub 가 들어오는 대신 self-hosted 러너(라벨 `einvestlab`)가 당겨온다. 러너가 소스를 `~/e-invest-lab` 에 동기화하고 `docker compose --profile app up -d --build` → `/api/stocks/recently-covered` 헬스체크.
 
+- **현재 중단** — 홈서버를 내려둔 동안 자동 배포 워크플로를 제거했다. `.github/workflows/ci.yml` 은 테스트만 돌린다. 되살릴 때는 `82371b2` 의 `deploy` job 을 복원하면 된다 (`working-directory: backend` 는 새로 필요).
 - 시크릿은 GitHub Actions Secrets → 배포 시 서버 `.env`. 데이터는 볼륨(MySQL `mysql-data`, PDF `data/analyst-report-pdfs`) — 소스 동기화가 건드리지 않는다.
 - 확인: `ssh homeserver 'cd ~/e-invest-lab && docker compose --profile app ps && docker compose --profile app logs --tail 50 app'`
 
