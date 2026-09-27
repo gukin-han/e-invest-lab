@@ -2,6 +2,10 @@ spring:
   application:
     name: e-invest-lab
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+
   threads:
     virtual:
       enabled: true
@@ -64,3 +68,12 @@ server:
   compression:
     enabled: true
     min-response-size: 1KB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
