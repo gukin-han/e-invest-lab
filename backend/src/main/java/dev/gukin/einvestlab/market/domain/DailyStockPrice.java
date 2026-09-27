@@ -74,4 +74,20 @@ public class DailyStockPrice {
         this.marketCap = marketCap;
         this.collectedAt = collectedAt;
     }
+
+    public boolean hasPriceDetail() {
+        return openPrice > 0 && highPrice > 0 && lowPrice > 0;
+    }
+
+    public int openPriceOrClose() {
+        return hasPriceDetail() ? openPrice : closePrice;
+    }
+
+    public int highPriceOrClose() {
+        return hasPriceDetail() ? highPrice : closePrice;
+    }
+
+    public int lowPriceOrClose() {
+        return hasPriceDetail() ? lowPrice : closePrice;
+    }
 }
