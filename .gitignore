@@ -42,7 +42,7 @@ frontend/dist/
 
 ### Environment ###
 .env
-application-local.properties
+application-local.*
 
 ### Collected raw files (PDF 원본 등) ###
 data/
