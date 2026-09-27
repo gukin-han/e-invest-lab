@@ -59,3 +59,8 @@ offering:
   extraction:
     models:
       - gpt-5-mini
+
+server:
+  compression:
+    enabled: true
+    min-response-size: 1KB
