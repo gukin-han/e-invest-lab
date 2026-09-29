@@ -11,8 +11,13 @@ import {
 export const RISE = "#d24f45"
 export const FALL = "#1e6fd9"
 
-const GRID = "#eceff3"
-const TEXT = "#5b6472"
+export const GRID = "#eceff3"
+export const TEXT = "#5b6472"
+
+export const BAR = "#9db0c7"
+export const BAR_ACTIVE = "#5d7797"
+export const MEAN = "#2f3a47"
+export const SELECTION = "rgba(45, 111, 217, 0.10)"
 
 export const won = new Intl.NumberFormat("ko-KR")
 

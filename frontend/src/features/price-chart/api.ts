@@ -29,3 +29,36 @@ export async function fetchDailyPrices(
   const body: ApiResponse<DailyPrice[]> = await response.json()
   return body.data
 }
+
+export type PriceBin = {
+  from: number
+  to: number
+  count: number
+}
+
+export type PriceDistribution = {
+  bins: PriceBin[]
+  mean: number
+  tradingDays: number
+  minPrice: number
+  maxPrice: number
+}
+
+export async function fetchPriceDistribution(
+  stockCode: string,
+  range: { from: string; to: string },
+  signal?: AbortSignal,
+): Promise<PriceDistribution | null> {
+  const query = new URLSearchParams({ from: range.from, to: range.to })
+
+  const response = await fetch(
+    `/api/stocks/${stockCode}/price-distribution?${query}`,
+    { signal },
+  )
+  if (!response.ok) {
+    throw new Error(`주가 분포 조회에 실패했습니다 (${response.status})`)
+  }
+
+  const body: ApiResponse<PriceDistribution | null> = await response.json()
+  return body.data
+}
