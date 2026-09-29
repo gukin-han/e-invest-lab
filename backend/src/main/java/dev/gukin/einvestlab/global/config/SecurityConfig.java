@@ -20,6 +20,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/stocks/*/prices").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stocks/*/price-distribution").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/", "/index.html", "/favicon.ico", "/assets/**", "/vite.svg")

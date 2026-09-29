@@ -3,6 +3,7 @@ package dev.gukin.einvestlab.market.interfaces.web;
 import dev.gukin.einvestlab.global.web.ApiResponse;
 import dev.gukin.einvestlab.market.application.ShareCountTrendQuery;
 import dev.gukin.einvestlab.market.application.StockPriceQuery;
+import dev.gukin.einvestlab.market.interfaces.web.dto.PriceDistributionResponse;
 import dev.gukin.einvestlab.market.interfaces.web.dto.ShareCountTrendResponse;
 import dev.gukin.einvestlab.market.interfaces.web.dto.StockPriceResponse;
 import lombok.RequiredArgsConstructor;
@@ -43,5 +44,15 @@ public class StockPriceController {
         return ApiResponse.of(priceQuery.series(stockCode, from, to, clock.instant()).stream()
                 .map(StockPriceResponse::from)
                 .toList());
+    }
+
+    @GetMapping("/api/stocks/{stockCode}/price-distribution")
+    public ApiResponse<PriceDistributionResponse> priceDistribution(
+            @PathVariable String stockCode,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ApiResponse.of(priceQuery.distribution(stockCode, from, to, clock.instant())
+                .map(PriceDistributionResponse::from)
+                .orElse(null));
     }
 }
